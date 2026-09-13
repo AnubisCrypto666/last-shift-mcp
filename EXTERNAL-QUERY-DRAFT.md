@@ -46,17 +46,23 @@ upstream contributions and judge-visible bonus points.
   2025-11-25). Optionally, developers can simulate the Alexa+ experience in
   a web app using their own agentic tools."* The server must support
   Streamable HTTP transport per the 2025-11-25 MCP spec.
-- **I must layer in two additional "mini challenges" onto the same
-  project** (confirmed compatible by the rules — a project can win one
-  primary track prize + one mini challenge prize):
-  - **Open Source ($5,000):** ship a new open-source project (with license)
-    or a contribution — branch/fork/PR — to an existing public repo, during
-    the hackathon window. PRs do not need to be merged.
-  - **AWS Builder ($5,000):** the same primary-track project must
-    incorporate an AWS service with a documented integration (Bedrock,
-    AgentCore, Strands SDK, Kiro, SageMaker, etc. are the named examples;
-    "and more" is explicit). I have $150 in AWS credits (approved via the
-    hackathon's credit request form).
+- **Two additional "mini challenges" are available on top of the primary
+  track** (rules confirm a project can combine one primary-track prize + one
+  mini-challenge prize). They have different, asymmetric coupling
+  requirements to the primary-track project — important not to blur:
+  - **AWS Builder ($5,000) — NOT independent.** Rules, verbatim: "Any
+    primary track project that incorporates AWS services ... with
+    documented integrations." The AWS integration must live inside the same
+    Alexa+ project's own code (Bedrock, AgentCore, Strands SDK, Kiro,
+    SageMaker, etc. are the named examples; "and more" is explicit). I have
+    requested $150 in AWS credits via the hackathon's credit request form;
+    approval is pending, not yet confirmed.
+  - **Open Source ($5,000) — independent.** Rules, verbatim: "Create a new
+    open-source project or contribute to an existing public repository
+    during the hackathon window, **alongside** a primary track submission."
+    The contribution is submitted alongside the primary-track project, not
+    required to be part of it — it can be a wholly unrelated PR, branch, or
+    fork against any public repo. PRs do not need to be merged.
 - **Judging: four equally-weighted criteria** (official wording): "Tech
   Implementation" (effective, non-decorative use of the required tech —
   code must actually call it, not just mention it in the README), "Design"
@@ -146,8 +152,10 @@ debugging, technical writing that converts into upstream OSS contributions
 and judge-visible bonuses), the real technical ceiling and gap of the Alexa+
 track (a genuinely spec-compliant MCP server is very achievable; a
 *production* Alexa+ connection is not, within this timeframe, for a
-non-partner), the requirement to naturally carry both the Open Source and
-AWS Builder mini-challenges on the same project, and the demonstrated taste
+non-partner), the goal of naturally qualifying for AWS Builder (which
+requires the AWS integration to live inside this same project) while also
+picking up Open Source cheaply (which does not need to touch this project at
+all), and the demonstrated taste
 of this sponsor's judges (deep real tool use, creative/narrative framing,
 tight scope, strong demo craft, valuable written self-reporting) —
 

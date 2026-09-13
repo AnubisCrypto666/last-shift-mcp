@@ -94,9 +94,25 @@ or a contribution (a branch, a fork, or a pull request) to a public repository
 during the hackathon window, alongside your primary-track submission. PRs
 don't need to be merged; a forked, unmerged version is fine."*
 
-Rules §4 adds required submission fields: *"contribution URL, project
-repository URL, GitHub username, and a description of what you did, how it
-works, and why it matters."*
+Rules §4, full definition, verbatim: *"Open Source (Mini Challenge): Create a
+new open-source project or contribute to an existing public repository during
+the hackathon window, alongside a primary track submission. Contributions can
+be a new repo (with open-source license), a branch, a fork, or a pull
+request. PRs do not need to be merged; share your forked version if
+unmerged. Required: contribution URL, project repository URL, GitHub
+username, and a description of what you did, how it works, and why it
+matters."*
+
+**Coupling to the primary track — deliberately weaker than AWS Builder's.**
+Both quotes say the contribution happens *"alongside"* the primary-track
+submission — not *"incorporated into"* it, which is the exact verb Rules §4
+uses for AWS Builder (compare the next section). Nothing in either quote
+requires the open-source contribution to touch, extend, or even relate to the
+Alexa+ MCP server itself. It can legitimately be an unrelated PR to a
+completely different public repository, submitted at the same time as (not
+integrated with) the primary-track project. This is the opposite coupling
+rule from AWS Builder — worth keeping distinct when explaining both to
+anyone, including an external model.
 
 ### Deadline (exact, three ways it's stated)
 
