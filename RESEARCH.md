@@ -306,6 +306,111 @@ certifying) — irrelevant to us since we're not pursuing certification, but
 worth knowing it exists in case anyone asks why we didn't get "properly"
 certified.
 
+### Pre-brainstorm technical verification (2026-09-13) — client/server split, MCP Apps, named partners
+
+Three specific claims checked before closing on a build direction, each with
+a direct quote and source. Where documentation didn't answer something, it's
+marked as such rather than inferred.
+
+**1. Is Alexa+ explicitly documented as the MCP client, owning NLU/voice/UI
+rendering, with our server only returning tool data? YES — confirmed
+verbatim.**
+
+`mcp-toolkit-overview.html`, "Overview":
+> "Alexa+ acts as the MCP client. You return standard MCP responses, and
+> Alexa+ handles natural language understanding, response generation, and
+> user interface (UI) rendering."
+
+Same page, "How it all connects": *"Alexa+ routes the request through your
+add-on to your MCP server using streamable HTTP. It invokes the appropriate
+tools and returns the result back to the customer."* Component table:
+*"**MCP Server** — Your service: defines and exposes tools, resources, and
+prompts over streamable HTTP."* vs *"**Alexa+ AI Reasoning** — Determines
+when and how to invoke your tools based on customer intent."*
+
+One nuance, from `mcp-addon-conversation-surface.html`: *"MCP responses
+produce a voice response and, where supported, an on-screen response. Alexa
+incorporates your returned data into the voice response... You influence
+Alexa's response through the data you return, not by scripting it
+directly."* — i.e. the server shapes the answer through the data it returns,
+but doesn't compose the spoken sentence itself.
+
+**Decision implication:** this is direct confirmation that a "thin shell
+imitating Alexa+" is the architecturally correct scope for our demo client,
+not a shortcut we're taking to cut corners. Our self-hosted MCP server's job
+is strictly: expose tools/resources, return structured data. Whatever plays
+Alexa+'s role in the demo (our own client) has to supply the NLU/reasoning/
+narration layer itself — because in production that's Alexa+'s job, not
+ours, and we don't have production Alexa+ access. That client-side reasoning
+is real, necessary work (it needs an LLM driving tool calls + a chat/voice
+UI) — it's not decorative, just architecturally separate from the server.
+
+**2. Is there a named "MCP Apps" concept for games/layered UI/immersive
+views? YES, at two levels — a fully-specified generic protocol extension,
+and a thin Alexa+-specific claim of support.**
+
+Generic spec (`apps.extensions.modelcontextprotocol.io`, MCP Apps
+landing/README, spec version 2026-01-26): *"MCP Apps provide a standardized
+way to deliver interactive UIs from MCP servers. Your UI renders inline in
+the conversation, in context, in any compliant host."* Mechanism, quoted
+exactly:
+> "1. Tool definition — Your tool declares a `ui://` resource containing its
+> HTML interface. 2. Tool call — The LLM calls the tool on your server.
+> 3. Host renders — The host fetches the resource and displays it in a
+> sandboxed iframe. 4. Bidirectional communication — The host passes tool
+> data to the UI via notifications, and the UI can call other tools through
+> the host."
+
+Supported-client badges on that page: ChatGPT, Claude, VS Code, Goose,
+Postman, MCPJam, mcp-use, Alpic Playground — **Alexa+ is not among them**,
+i.e. Alexa+'s support claim lives only in Amazon's own docs, not the
+upstream spec's client list.
+
+Alexa+-specific claim, `mcp-toolkit-overview.html` — this is the entire
+extent of it, one paragraph, no wire-level detail:
+> "Alexa+ also supports the MCP Apps extension, enabling you to render
+> interactive UIs for MCP tools directly in the conversation view... Examples
+> include layered map information, multi-step flows, **games**, immersive
+> learning experiences, or dashboards... You can onboard your existing MCP
+> Apps and use a webview provided by Alexa+ to deliver rich visuals."
+
+`mcp-addon-display-modes.html` separately documents a "Fullscreen" display
+mode (*"When to use: Games. Panning and zooming interactions..."*) but
+**never uses the words "MCP Apps" on that page** — the two concepts are
+plausibly the same underlying mechanism but the docs never state that
+connection explicitly. Marked as **NOT FOUND / unconfirmed link** between
+"Fullscreen display mode" and "MCP Apps" specifically.
+
+**Decision implication:** the generic `ui://` resource + sandboxed-iframe +
+postMessage mechanism is fully specified and independently useful — we can
+build our MCP server to expose real MCP Apps UI resources per the actual
+spec, and build our demo client to render them exactly the way Alexa+ says
+it would ("a webview... to deliver rich visuals"). That's a technically
+honest simulation, not an invented one, and "games" is Amazon's own named
+example use case — directly aligned with B7's finding that judges reward
+creative/narrative, visually distinctive demos.
+
+**3. Is Crystal Dynamics (or other named companies) publicly confirmed as
+an Alexa+ MCP preview partner? YES — confirmed, dated, verbatim.**
+
+Amazon Developer blog, July 23, 2026, "Alexa+ connects to new services":
+> "Canva, Cengage, Crystal Dynamics, Headspace, Priceline, Viator, Virgin
+> Atlantic, Weekend, Lyft, and Brightline, FlixBus, and Greyhound via
+> Distribusion Technologies will be the first brands to start building
+> experiences using MCP later this year."
+— `developer.amazon.com/alexaplus/blogs/2026/07/alexa-plus-new-ways-to-build-experiences`
+
+No further detail on what Crystal Dynamics specifically is building is given
+on that page — it's a single mention in a list sentence, not an individual
+case study (unlike Priceline, which gets its own quote). Crystal Dynamics is
+a video-game studio (Tomb Raider, etc.) — its presence on this list is a
+real, dated signal that Amazon itself is positioning games/interactive
+entertainment as a legitimate MCP-for-Alexa+ category, reinforcing the same
+direction B7's winner-pattern research points to. This is not a hackathon
+program detail (none of these partners are described as hackathon-related),
+just external validation that "games via MCP" is a category Amazon is
+actively courting for Alexa+ generally.
+
 ---
 
 ## B6 — MCP spec 2025-11-25, Streamable HTTP: what our server must satisfy
