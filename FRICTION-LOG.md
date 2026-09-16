@@ -121,3 +121,59 @@ Each entry:
   change. The mechanism (the two situations are conflated) is what we're
   sure of; which fix they'd want for *example* code specifically is not
   ours to presume.
+
+## 2026-09-16 — `@modelcontextprotocol/express` v2: undocumented `allowedOrigins` option, surprising implicit default
+
+- **Action attempted:** Migrate `server/` from `@modelcontextprotocol/sdk`
+  (v1) to the v2 package family, specifically wiring Origin-header
+  validation via `@modelcontextprotocol/express`'s `createMcpExpressApp()`
+  (the v2 replacement for the gap logged in the 2026-09-15 entry above).
+- **Steps:** Read `@modelcontextprotocol/express`'s README top to bottom
+  first (the only usage doc available without going to source). Its
+  "Exports" list and "Usage" section show `createMcpExpressApp(options?)`
+  with exactly one worked example (`{ host: '0.0.0.0', allowedHosts: [...] }`)
+  - `allowedOrigins` is never mentioned anywhere in the README. Concluded
+  from this that Origin validation still had to be hand-wired (as in v1),
+  and wrote a separate middleware wrapping `@modelcontextprotocol/node`'s
+  `originValidation()` guard function, mounted via `app.use()` after
+  `createMcpExpressApp()`.
+- **Expected result:** A request with an explicitly allow-listed Origin
+  hostname should pass.
+- **Actual result:** Every such request was rejected with `403` and body
+  `{"error":{"message":"Invalid Origin: allowed.example"}}` - even for a
+  hostname we had just put in the allow-list ourselves. Root cause, found
+  by reading `node_modules/@modelcontextprotocol/express/dist/index.mjs`
+  directly (not documented in the README): `createMcpExpressApp()` accepts
+  an `allowedOrigins` option, and when it's *not* passed, silently wires
+  `localhostOriginValidation()` as middleware by default (mirroring what it
+  already does for `allowedHosts`/`host`). Our own hand-wired Origin
+  middleware, mounted second, never got a chance to run - the app's own
+  built-in localhost-only guard rejected the request first. Confirmed the
+  fix by passing `allowedOrigins` straight into `createMcpExpressApp()`
+  instead: `createMcpExpressApp({ allowedOrigins: [...] })` - all 11 tests
+  pass, including one added specifically to cover this case.
+- **Severity:** minor (an hour of debugging, not a design blocker), but a
+  real trap: a developer following only the README - the normal path - has
+  no way to discover `allowedOrigins` exists, nor that its absence isn't
+  neutral (it's a live, silently-applied restriction), until they either
+  read the source or hit exactly this symptom.
+- **Workaround:** removed the redundant hand-wired middleware entirely and
+  passed `allowedOrigins` directly into `createMcpExpressApp()` - simpler
+  than the original approach, not just a fix.
+- **Mechanism (confirmed):** `createMcpExpressApp()`'s implementation
+  (`packages/express/src/index.ts`, compiled to `dist/index.mjs`) mirrors its
+  own `allowedHosts`/`host` Host-validation pattern for Origin validation
+  (`if (allowedOrigins) ... else if (host is localhost) app.use(localhostOriginValidation())`)
+  - but only the Host-validation half of this symmetry is documented in the
+  README's "Usage" section and JSDoc examples. The Origin half is
+  functionally complete but has zero prose or example coverage.
+- **Proposed fix (our suggestion, not confirmed):** add an `allowedOrigins`
+  usage example to the README's "Usage" section, parallel to the existing
+  `allowedHosts` one, and a sentence next to the `host` option's docs
+  stating explicitly that omitting `allowedOrigins` applies
+  `localhostOriginValidation()` by default when `host` is a loopback
+  address - exactly as already documented for `allowedHosts`. This is a
+  documentation-only fix as far as we can tell; we're not proposing any
+  behavior change, since the implicit localhost default is a reasonable,
+  safe choice - the gap is purely that it isn't written down anywhere a
+  reader would see it before hitting the symptom.

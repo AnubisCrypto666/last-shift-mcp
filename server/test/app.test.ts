@@ -115,8 +115,12 @@ describe("GET /mcp - server-initiated stream", () => {
 });
 
 describe("Origin validation (RESEARCH.md B6, Security Warning)", () => {
+  // allowedOrigins holds HOSTNAMES (matching @modelcontextprotocol/node's
+  // originValidation() semantics - it parses the Origin header and compares
+  // only the hostname, not the full origin string). See NOTES.md 2026-09-16.
+
   it("rejects a disallowed Origin header (403)", async () => {
-    const app = createApp({ allowedOrigins: ["https://allowed.example"], enableJsonResponse: true });
+    const app = createApp({ allowedOrigins: ["allowed.example"], enableJsonResponse: true });
     const res = await request(app)
       .post("/mcp")
       .set("Accept", "application/json, text/event-stream")
@@ -127,7 +131,7 @@ describe("Origin validation (RESEARCH.md B6, Security Warning)", () => {
   });
 
   it("accepts an allowed Origin header", async () => {
-    const app = createApp({ allowedOrigins: ["https://allowed.example"], enableJsonResponse: true });
+    const app = createApp({ allowedOrigins: ["allowed.example"], enableJsonResponse: true });
     const res = await request(app)
       .post("/mcp")
       .set("Accept", "application/json, text/event-stream")
@@ -138,12 +142,23 @@ describe("Origin validation (RESEARCH.md B6, Security Warning)", () => {
   });
 
   it("accepts a request with no Origin header at all (non-browser clients)", async () => {
-    const app = createApp({ allowedOrigins: ["https://allowed.example"], enableJsonResponse: true });
+    const app = createApp({ allowedOrigins: ["allowed.example"], enableJsonResponse: true });
     const res = await request(app)
       .post("/mcp")
       .set("Accept", "application/json, text/event-stream")
       .send(initializeRequest());
 
     expect(res.status).toBe(200);
+  });
+
+  it("rejects a malformed Origin header (403) - v2's validateOriginHeader parses and denies on failure", async () => {
+    const app = createApp({ allowedOrigins: ["allowed.example"], enableJsonResponse: true });
+    const res = await request(app)
+      .post("/mcp")
+      .set("Accept", "application/json, text/event-stream")
+      .set("Origin", "not-a-valid-url")
+      .send(initializeRequest());
+
+    expect(res.status).toBe(403);
   });
 });

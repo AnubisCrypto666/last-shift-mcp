@@ -1,13 +1,18 @@
 import { randomUUID } from "node:crypto";
-import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
+import { createMcpExpressApp } from "@modelcontextprotocol/express";
+import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
+import { isInitializeRequest } from "@modelcontextprotocol/server";
 import type { Express } from "express";
 import { createMcpServer } from "./mcpServer.js";
-import { originValidation } from "./originValidation.js";
 
 export interface AppOptions {
-  /** Origin header values to accept; requests with no Origin header always pass. */
+  /**
+   * Origin HOSTNAMES to accept (e.g. "allowed.example" - no scheme/port),
+   * matched against the `Origin` header's parsed hostname. Requests with no
+   * Origin header always pass (non-browser clients: curl, MCP Inspector).
+   * Matches @modelcontextprotocol/node's `originValidation()` semantics -
+   * see NOTES.md, 2026-09-16.
+   */
   allowedOrigins?: readonly string[];
   /**
    * If true, POST responses are plain `application/json` instead of an SSE
@@ -22,8 +27,13 @@ export interface AppOptions {
  * by Streamable HTTP: POST for client-to-server messages, GET to open a
  * server-initiated SSE stream, DELETE for explicit session termination.
  * Session lifecycle (Mcp-Session-Id) and protocol-version validation
- * (MCP-Protocol-Version) are handled internally by StreamableHTTPServerTransport;
- * Origin validation is our own middleware (see originValidation.ts).
+ * (MCP-Protocol-Version) are handled internally by NodeStreamableHTTPServerTransport;
+ * Origin validation is `createMcpExpressApp()`'s own built-in `allowedOrigins`
+ * option (v2 ships this natively - v1 didn't, see FRICTION-LOG.md). Passing
+ * it explicitly - even as `[]` - matters: left unset, `createMcpExpressApp()`
+ * defaults to `localhostOriginValidation()` (only `localhost`/`127.0.0.1`/
+ * `[::1]`), which silently rejected every non-localhost Origin in early
+ * testing here before this was passed through. See NOTES.md, 2026-09-16.
  *
  * Kept as a factory - not `app.listen()` - so tests can exercise it directly
  * over HTTP via supertest without a live port.
@@ -31,18 +41,17 @@ export interface AppOptions {
 export function createApp(options: AppOptions = {}): Express {
   const { allowedOrigins = [], enableJsonResponse = false } = options;
 
-  const app = createMcpExpressApp();
-  app.use(originValidation(allowedOrigins));
+  const app = createMcpExpressApp({ allowedOrigins: [...allowedOrigins] });
 
   // One transport per active session; each transport is bound to its own
   // McpServer instance created at initialization time.
-  const transports: Record<string, StreamableHTTPServerTransport> = {};
+  const transports: Record<string, NodeStreamableHTTPServerTransport> = {};
 
   app.post("/mcp", async (req, res) => {
     const sessionId = req.headers["mcp-session-id"] as string | undefined;
 
     try {
-      let transport: StreamableHTTPServerTransport;
+      let transport: NodeStreamableHTTPServerTransport;
 
       if (sessionId) {
         if (!transports[sessionId]) {
@@ -50,9 +59,9 @@ export function createApp(options: AppOptions = {}): Express {
           // 2025-11-25, Session Management #3-4): "The server MAY terminate
           // the session at any time, after which it MUST respond to requests
           // containing that session ID with HTTP 404 Not Found" - not 400.
-          // The SDK's own reference example (examples/server/simpleStreamableHttp.js)
-          // collapses this into the generic 400 branch below; fixed here.
-          // See NOTES.md, 2026-09-15 - candidate for an upstream issue.
+          // v1's reference example collapsed this into a generic 400 branch
+          // (FRICTION-LOG.md, 2026-09-15); v2's own transport gets this right
+          // internally, confirming the fix was correct, not just a house style.
           res.status(404).json({
             jsonrpc: "2.0",
             error: { code: -32001, message: "Session not found" },
@@ -62,7 +71,7 @@ export function createApp(options: AppOptions = {}): Express {
         }
         transport = transports[sessionId];
       } else if (isInitializeRequest(req.body)) {
-        transport = new StreamableHTTPServerTransport({
+        transport = new NodeStreamableHTTPServerTransport({
           sessionIdGenerator: () => randomUUID(),
           enableJsonResponse,
           onsessioninitialized: (sid) => {

@@ -135,3 +135,51 @@ transport wiring from step 2; likely *simplifies* Origin validation; test
 suite's assertions/shape carry over conceptually) — but it is a scope change
 to already-committed work, not something to do silently. Surfaced to the
 user for a decision before touching `server/` further.
+
+## 2026-09-16 — Migration executed: `server/` now on v2
+
+User decision: migrate now (11 days to Gate 1 at ~a day of rework is the
+cheapest point to do this; later means more code standing on v1).
+
+**What changed:**
+- `package.json`: removed `@modelcontextprotocol/sdk`; added
+  `@modelcontextprotocol/{core,server,express,node}` + `ext-apps`, all
+  pinned to `2.0.0`.
+- `src/mcpServer.ts`: `McpServer` now imported from
+  `@modelcontextprotocol/server` instead of `@modelcontextprotocol/sdk/server/mcp.js`.
+  Same `{ name, version }` constructor shape - no behavior change.
+- `src/app.ts`: `StreamableHTTPServerTransport` (from
+  `@modelcontextprotocol/sdk/server/streamableHttp.js`) →
+  `NodeStreamableHTTPServerTransport` (from `@modelcontextprotocol/node`).
+  Same options shape (`sessionIdGenerator`, `onsessioninitialized`,
+  `enableJsonResponse`) - `allowedOrigins`/`allowedHosts`/
+  `enableDnsRebindingProtection` are gone entirely in v2 (not just
+  deprecated), replaced by standalone guard functions. `isInitializeRequest`
+  now imported directly from `@modelcontextprotocol/server` (no `/types.js`
+  subpath needed). Our own session-routing logic (400 for no session id,
+  404 for unknown session id - the fix from the 2026-09-15 entry above) is
+  unchanged; it's our own outer-routing responsibility in both v1 and v2.
+- `src/originValidation.ts`: **deleted.** Origin validation is now
+  `createMcpExpressApp({ allowedOrigins: [...] })`'s built-in option - see
+  the FRICTION-LOG.md entry for how finding this took an extra debugging
+  round (the option exists but isn't documented in the package README).
+  One semantic change worth remembering: v2's Origin allow-list holds
+  **hostnames** (`"allowed.example"`), not full origin strings
+  (`"https://allowed.example"`) - `AppOptions.allowedOrigins` in our own
+  code now documents this explicitly.
+- `test/app.test.ts`: Origin-validation tests updated for the hostname-only
+  allow-list; added one new test for a malformed `Origin` header (v2's
+  `validateOriginHeader` parses and denies on failure - stricter/more
+  correct than our v1 hand-rolled version, which never validated the header
+  was even a well-formed URL).
+
+**Confirmed working, not assumed:** `npx tsc --noEmit` clean, all 11 unit
+tests pass (10 carried over conceptually + 1 new), and a live `npm run dev`
++ `curl` smoke test against `/mcp` still returns `200` on a real
+`initialize` call - exactly the same empirical bar step 2 was held to.
+
+**Net effect:** the migration didn't just unblock `ext-apps` for step 4 -
+`app.ts` is now *shorter* than the v1 version (no hand-written
+`originValidation.ts` file at all), and the FRICTION-LOG.md v1 Origin gap
+entry stands even more clearly confirmed by contrast with how v2 solved the
+same problem.
