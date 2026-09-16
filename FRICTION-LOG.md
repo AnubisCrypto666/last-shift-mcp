@@ -11,7 +11,16 @@ Each entry:
 - **Actual result** — what actually happened (exact error text if any)
 - **Severity** — blocker / major / minor / cosmetic
 - **Workaround** — what we did to get unstuck, if anything
-- **Suggestion** — what upstream could fix
+- **Suggestion** — what upstream could fix, split into two explicitly labeled
+  parts so we don't repeat the deadreckon mistake (see
+  LESSONS-deadreckon.md: we diagnosed the mechanism correctly there but
+  proposed a patch that removed the symptom instead of the cause, so the
+  maintainer closed it and wrote their own version):
+  - **Mechanism (confirmed)** — what is actually wrong and why, backed by a
+    reproduction. This part we stand behind.
+  - **Proposed fix (our suggestion, not confirmed)** — one way to fix it.
+    Flagged explicitly as a proposal, not a diagnosis — the maintainer may
+    reasonably choose a different fix for the same confirmed mechanism.
 
 ---
 
@@ -45,11 +54,25 @@ Each entry:
   middleware checking `req.headers.origin` against an allow-list, mounted
   before the MCP routes. ~15 lines, matches the JSON error-response shape
   the SDK's own middleware uses for consistency.
-- **Suggestion:** either un-deprecate the transport-level Origin option, or
-  ship an `originValidation()` middleware in `server/express.js` alongside
-  `hostHeaderValidation`/`localhostHostValidation` - the "use external
-  middleware" TSDoc note currently points at something that doesn't exist in
-  the package. Candidate for an issue against `modelcontextprotocol/typescript-sdk`.
+- **Mechanism (confirmed):** `allowedOrigins`, `allowedHosts`, and
+  `enableDnsRebindingProtection` are marked `@deprecated` on
+  `StreamableHTTPServerTransportOptions`, each pointing at "use external
+  middleware" instead. `createMcpExpressApp()` — the one helper the SDK
+  itself ships as the "external" path — only wires `hostHeaderValidation`/
+  `localhostHostValidation` (Host header). Grepped the full installed
+  package tree for any Origin-header middleware; none exists. This is a
+  verified absence, not a guess: the deprecation notice names a replacement
+  that isn't in the package.
+- **Proposed fix (our suggestion, not confirmed):** ship an
+  `originValidation()` middleware in `server/express.js`, mirroring the
+  shape of `hostHeaderValidation`, and wire it into `createMcpExpressApp()`
+  the same way Host validation is wired in. This is one plausible fix, not
+  the only one — the maintainers might instead prefer to un-deprecate the
+  transport-level option, fold Origin+Host into one combined check, or
+  simply fix the TSDoc to stop pointing at a nonexistent replacement.
+  Filing this as an issue describing the confirmed gap, not as a PR
+  presuming our fix is the one they'll want — the deadreckon lesson is to
+  let the maintainer own the fix shape when we're not certain of it.
 
 ## 2026-09-15 — Reference example conflates "missing session id" (400) with "unknown session id" (404)
 
@@ -77,7 +100,24 @@ Each entry:
   `sessionId` presence and validity as two separate branches, returning 404
   for "present but unknown" and 400 only for "absent, non-init request" -
   confirmed by dedicated unit tests (`server/test/app.test.ts`).
-- **Suggestion:** fix the branching in
-  `src/examples/server/simpleStreamableHttp.ts` (and any other examples
-  sharing the same pattern) to return 404 for an unrecognized session id.
-  Candidate for a small PR against `modelcontextprotocol/typescript-sdk`.
+- **Mechanism (confirmed):** the example's outer routing has exactly two
+  branches guarding a fresh `initialize` call and everything else — it never
+  separately tests "session id present but not in the transports map." Read
+  directly in the shipped source
+  (`dist/esm/examples/server/simpleStreamableHttp.js`), and confirmed against
+  the transport's *own* internal convention for the same situation
+  elsewhere in the package (`createJsonErrorResponse(404, -32001, 'Session
+  not found')`, in `webStandardStreamableHttp.js`) — the example's outer
+  layer disagrees with the transport's own inner layer on what an unknown
+  session id should return. Reproduced independently in our own
+  `server/test/app.test.ts`.
+- **Proposed fix (our suggestion, not confirmed):** split the example's
+  branch into "no session id" (400) and "session id present but unknown"
+  (404) — the exact restructuring we applied in `server/src/app.ts`. Flagged
+  as a proposal rather than a settled diagnosis-plus-patch: it's possible
+  the example was deliberately simplified for readability and the
+  maintainers consider strict 404-precision out of scope for demo code, in
+  which case the right fix might be a comment/caveat instead of a behavior
+  change. The mechanism (the two situations are conflated) is what we're
+  sure of; which fix they'd want for *example* code specifically is not
+  ours to presume.
