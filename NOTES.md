@@ -50,3 +50,88 @@ reconstruct from memory at the end — write it now.
   (spec-optional, MAY-level) rather than depending on example-internal code.
 - Empirical smoke test: `npm run dev` boots the app for real (not just under
   supertest) and responds `200` to a live `curl` POST /mcp initialize call.
+
+## 2026-09-16 — Step 3: `@modelcontextprotocol/ext-apps` + Inspector empirical check
+
+**This is the biggest finding of the project so far — it revises step 2's
+foundation, not just step 3's question.**
+
+**Question 1: does ext-apps have a server-side helper for `ui://` resources?**
+Yes, and it's well-built. `@modelcontextprotocol/ext-apps@2.0.0` exports a
+`./server` subpath (`node_modules/@modelcontextprotocol/ext-apps/dist/src/server/index.d.ts`)
+with `registerAppTool()` and `registerAppResource()` — documented wrappers
+around `registerTool`/`registerResource` that normalize `_meta.ui.resourceUri`,
+default the MIME type to `text/html;profile=mcp-app`, support CSP domain
+allowlisting for the rendered iframe, and a `getUiCapability()` helper for
+capability negotiation (`EXTENSION_ID = "io.modelcontextprotocol/ui"`). This
+is exactly the mechanism RESEARCH.md's B5-bis described from the outside
+(`ui://` resource → sandboxed iframe → postMessage) — confirmed from the
+inside now, with a real, documented API, not just a spec description.
+
+**Question 2: does MCP Inspector support previewing/rendering `ui://`
+resources?** Very likely yes — `npm view @modelcontextprotocol/inspector
+dependencies` shows Inspector (`2.6.0`) directly depends on
+`@modelcontextprotocol/ext-apps` (`^1.7.4`). Not independently confirmed by
+launching the UI yet (that's an interactive check, not scriptable from here) -
+worth a quick manual look once we're actually building the ui://room-map
+resource, but the dependency alone is strong evidence.
+
+**The complication neither RESEARCH.md nor plan-pracy anticipated:** ext-apps
+targets a *different, newer package family* than the one we scaffolded the
+server on in step 2. `ext-apps`'s `package.json` peer-deps on
+`@modelcontextprotocol/{core,client,server}@^2.0.0` — NOT
+`@modelcontextprotocol/sdk` (the monolithic package we used, `1.30.0`, still
+`latest` on npm with 79 published versions). These are two separate,
+independently-versioned package lines. `@modelcontextprotocol/server@2.0.0`'s
+own README states, verbatim: *"v2 is the stable release line... This is v2
+of the MCP TypeScript SDK. It replaces the monolithic `@modelcontextprotocol/sdk`
+package from v1."* An official migration guide exists
+(`github.com/modelcontextprotocol/typescript-sdk/blob/main/docs/migration/upgrade-to-v2.md`).
+
+**Confirmed empirically, not guessed:** wrote a throwaway probe file calling
+`registerAppTool()` against our existing v1-`sdk`-based `McpServer` (with
+`@modelcontextprotocol/server@2.0.0` additionally installed just for its
+types). `tsc` fails:
+```
+Type 'McpServer' is not assignable to parameter of type 'Pick<McpServer, "registerTool">'.
+  ... Types of parameters 'ctx' and 'extra' are incompatible.
+    Property 'mcpReq' is missing in type 'RequestHandlerExtra<...>' but required in type 'BaseContext'.
+```
+Not a shallow mismatch — v1 and v2's `registerTool` callback shapes are
+genuinely incompatible (`ServerContext` vs `RequestHandlerExtra`). ext-apps
+cannot be used against our current v1-based server, full stop; probe file
+and the extra optional dependency were removed after confirming this
+(`git log` won't show the dead end, but it's recorded here per the "log
+friction the moment it's hit" rule).
+
+**Also confirmed while checking version compatibility (worth knowing,
+resolves a real worry before it became one):** v2's own
+`LATEST_PROTOCOL_VERSION` constant is `'2025-11-25'` (source map:
+`export const LATEST_PROTOCOL_VERSION = '2025-11-25'; export const
+SUPPORTED_PROTOCOL_VERSIONS = [LATEST_PROTOCOL_VERSION, '2025-06-18',
+'2025-03-26', '2024-11-05', '2024-10-07'];`) — matching exactly the
+hackathon's "minimum acceptable version is 2025-11-25" requirement and
+RESEARCH.md B5/B6. The README's "implementing the 2026-07-28 MCP spec"
+banner refers to forward-looking `_meta` envelope conventions the v2 SDK
+anticipates, not a bump to the negotiated protocol version string — first
+read of the grep output made this look like a version-support gap; the
+source map resolved it as a false alarm. Recorded so the same false worry
+doesn't get re-litigated later.
+
+**Bonus finding while comparing package surfaces:** v2's
+`@modelcontextprotocol/server` exports `validateOriginHeader`,
+`originValidationResponse`, `localhostAllowedOrigins`, and a
+`OriginValidationResult` type directly — i.e. **v2 already ships the
+Origin-validation middleware v1 is missing** (see FRICTION-LOG.md's first
+2026-09-15 entry). If we migrate, our own hand-written
+`src/originValidation.ts` likely becomes deletable in favor of the SDK's own
+utility — one more point in favor of migrating, independent of the ext-apps
+question.
+
+**Decision needed, not made unilaterally:** migrating `server/` from
+`@modelcontextprotocol/sdk` (v1) to `@modelcontextprotocol/server` +
+`@modelcontextprotocol/core` (v2) is real, bounded rework (redo the
+transport wiring from step 2; likely *simplifies* Origin validation; test
+suite's assertions/shape carry over conceptually) — but it is a scope change
+to already-committed work, not something to do silently. Surfaced to the
+user for a decision before touching `server/` further.
