@@ -5,6 +5,9 @@
   "description": "MCP client + MCP Apps host for Ostatnia Szychta (The Last Shift) - the thin demo shell standing in for Alexa+'s conversational surface.",
   "type": "module",
   "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "verify": "tsx src/verifyConnection.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
@@ -14,6 +17,7 @@
   "devDependencies": {
     "@types/node": "^24.0.0",
     "tsx": "^4.19.0",
-    "typescript": "7.0.2"
+    "typescript": "7.0.2",
+    "vite": "^8.3.0"
   }
 }
