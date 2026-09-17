@@ -362,3 +362,92 @@ unaffected. Material for README "Demo honesty" / known-issues in Phase 3:
 explaining *why* the demo leads with Bedrock rather than sampling for the
 Alexa+-facing narrative, backed by Amazon's own documented client
 capabilities rather than our own guess.
+
+## 2026-09-17 — MCP Design Guide for Alexa+: read ahead of Component 2
+
+**RESEARCH.md gap, not a new Amazon page:** an official, multi-page "MCP
+Design Guide for Alexa+" exists at
+`developer.amazon.com/docs/alexaplus/add-ons/mcp-addon-design-guide.html`,
+missed entirely by the 2026-09-13 research pass. Read now, before Kimi K3
+starts Component 2, per plan-pracy's "read before building" order - no
+server code touched in this step. Two subpages also exist but weren't
+read yet (lower priority for a first pass): "Tools, Schema, and Data
+Design" and "Visual Foundations".
+
+**Correct subpage URLs** (the naming pattern isn't `mcp-addon-design-guide-<topic>.html`
+as guessed - it's `mcp-addon-<topic>.html`, no `design-guide` infix):
+- Conversation Surface: `mcp-addon-conversation-surface.html`
+- Display Modes: `mcp-addon-display-modes.html`
+- Layout and Rendering: `mcp-addon-layout-and-rendering.html`
+- Accessibility: `mcp-addon-accessibility.html`
+
+**What directly applies to `ui://room-map` as it exists today:**
+
+- **Fullscreen is the documented mode for games** ("Games. Panning and
+  zooming... Information-dense displays" - Display Modes page) - our
+  room-map panel is exactly this category. But fullscreen isn't
+  host-triggered automatically: *we* need to add an in-widget "expand"
+  control ("You will also provide the controls for customers to enter a
+  fullscreen mode"). Not built yet - candidate for Component 2 or a
+  follow-up to `uiRoomMap.ts`.
+- **No fixed pixel/viewport target to design for.** Alexa CSS-scales the
+  resource into a Block (landscape) or Card (portrait) viewport based on
+  the document's own aspect ratio, and delivers a `hostContext` object
+  (`deviceClass`, `displayMode`, `theme`, `safeAreaInsets`, ...) over the
+  postMessage bridge at render time and again on `host-context-changed`.
+  Resolve once into a CSS class, don't hardcode breakpoints.
+- **Sandboxed, opaque-origin iframe - no `window.parent`, no reliable
+  `localStorage`/cookies.** Directly affects our countdown: the current
+  implementation seeds `remainingSeconds` into inline JS at resource-read
+  time and ticks client-side with `setInterval` - consistent with the
+  guide (nothing bans in-frame timers), but the *authoritative* remaining
+  time must keep coming from the server/host on each fresh render, never
+  from client-side persistence, since Alexa explicitly supports
+  interrupting and later resuming a task (the Conversation Surface page's
+  own worked example is literally "Alexa, stop the timer" mid-task).
+- **The postMessage bridge (`ui/notifications/*`) is the only channel
+  out.** If Component 2 ever needs the widget to signal "time's up" or a
+  puzzle-solved event back to host-side game logic (rather than just
+  displaying state pushed to it), that must go through this bridge, not
+  ad-hoc parent access.
+- **CSP is network-only** (`_meta.ui.csp` → `connectDomains` /
+  `resourceDomains` allowlists), not a script-execution restriction. Our
+  resource makes no external network calls, so this can stay empty/omitted.
+- **Packaging guidance we already partly follow:** ship as one
+  self-contained HTML bundle (we do - inline `<style>`/`<script>`, no
+  external assets) and version the resource URI with a content hash for
+  safe caching (we don't do this yet - `ROOM_MAP_URI` is a static
+  `ui://room-map`, worth revisiting if caching becomes an issue).
+- **Accessibility - the only page with hard numeric requirements:**
+  48×48px minimum touch targets, 4.5:1 contrast for body text/graphics,
+  3:1 for large/bold text, 125-char alt-text limit, and - directly
+  relevant to any "time's almost up" visual treatment - **no flicker/flash
+  above 3 times per second** (rules out an aggressive pulsing red
+  countdown animation). VoiceView (Amazon's screen reader) parity is
+  required in principle but the guide states the outcome, not the ARIA
+  mechanism, for dynamically-updating content like a per-second countdown
+  - our own judgment call to make (e.g. throttled `aria-live="polite"`
+  rather than announcing every tick), not something to guess Amazon
+  requires a specific way.
+- **Voice-only fallback is mandatory, not optional:** "data must remain
+  intelligible without any visual support and be free of text formatting
+  artifacts (such as pipes)" - our HTML resource has no text-only/voice
+  equivalent representation of room/inventory/timer state today. This is
+  a real gap for Component 2, not just a nice-to-have.
+
+**What Kimi K3 should know before starting Component 2 (client/host
+side):** the host side (sandboxed iframe + postMessage bridge +
+`hostContext` delivery + `host-context-changed` re-adaptation) is real,
+specified plumbing to implement faithfully per the Layout and Rendering
+page - not something to invent. Use Amazon's own **Local Inspector** tool
+("synthesizes `hostContext` per device class, drives the MCP Apps
+postMessage bridge, renders your widget in a device bezel with light/dark
+mode switching") for local dev iteration before any real-device test -
+distinct from the generic `@modelcontextprotocol/inspector` we used for
+OI-01, and worth checking for install friction as its own step once
+Component 2 starts (candidate for FRICTION-LOG.md if it doesn't behave as
+documented).
+
+**Not done in this step, deliberately:** no server code changed, no
+Component 2 work started. This was a read-ahead per the explicit
+instruction to keep it to "one manual/prep action," not a build step.
