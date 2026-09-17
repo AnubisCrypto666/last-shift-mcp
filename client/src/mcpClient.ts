@@ -14,7 +14,10 @@ export function getClient(): Promise<Client> {
   if (client) return Promise.resolve(client);
   if (!connecting) {
     connecting = (async () => {
-      const instance = new Client({ name: "last-shift-mcp-client", version: "0.1.0" });
+      const instance = new Client(
+        { name: "last-shift-mcp-client", version: "0.1.0" },
+        { capabilities: { elicitation: {} } },
+      );
       const transport = new StreamableHTTPClientTransport(SERVER_URL);
       await instance.connect(transport);
       client = instance;

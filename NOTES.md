@@ -592,3 +592,42 @@ push, teardown) is inert until the server-side resource is extended to
 speak back. Flagged to the owner as a real scope decision for a later
 step, not silently added to or left out of Component 1's already-closed
 scope.
+
+## 2026-09-17 — step 4: chat -> tools/call, elicitation via chat, text narration
+
+`Client` needs `capabilities: { elicitation: {} }` passed at construction
+time - confirmed by reading `index.mjs` directly: `setRequestHandler('elicitation/create', ...)`
+throws `SdkError(CapabilityNotSupported, ...)` if the capability wasn't
+declared, and an empty `{}` capability object "defaults to form mode
+support" per the SDK's own comment - exactly the mode `attempt_escape`
+uses server-side. `request.params` for `elicitation/create` is a union
+(form mode carries `requestedSchema`, URL mode doesn't) - narrowed with
+`"requestedSchema" in request.params` rather than assuming the shape.
+
+Chat UI (`commandParser.ts`, a minimal free-text-to-tool-call parser
+standing in for Alexa+'s NLU) wired to `tools/call`; the confirmed brief
+section 3 proposal (text narration of `room://state` at session start and
+after every action, independent of the visual `ui://room-map` iframe -
+the MCP Design Guide's voice-only fallback requirement) implemented in
+`roomState.ts`. The pending server-initiated elicitation for
+`attempt_escape` is handled by making the *next* chat submission answer
+the elicitation instead of parsing as a new command - simplest thing that
+actually works for a single elicitation flow with one text field.
+
+**Verified with a real scripted playthrough against the live server, not
+just build/typecheck** - a throwaway script (not committed) imported the
+actual `commandParser.ts`/`roomState.ts` modules and drove a full session
+through a real `Client` with `elicitation/create` handled programmatically:
+examine control_panel -> examine toolbox -> use multitool on vent ->
+escape with the assembled code (`7XQ2`) - real narration text at every
+step, ending in the actual escape ending. Also verified the wrong-code
+path (time-penalty message, not a hard failure) and the decline path
+(hesitation message), both matching `applyAttemptEscape`'s server-side
+logic exactly. This is real end-to-end proof of Gate 2's own wording
+("wejście gracza → wywołanie narzędzia → (opcjonalnie) elicitation →
+zakończenie gry"), independent of whatever the browser UI happens to
+render.
+
+`tsc --noEmit` clean, `vite build` bundles cleanly (166 modules). Visual
+click-through in the browser (does the chat log actually read this way on
+screen) is still the owner's check, as with every prior step.

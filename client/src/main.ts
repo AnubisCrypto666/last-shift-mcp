@@ -1,5 +1,8 @@
+import type { Client } from "@modelcontextprotocol/client";
+import { COMMAND_HINT, parseCommand } from "./commandParser.js";
 import { getClient } from "./mcpClient.js";
 import { mountRoomView } from "./roomHost.js";
+import { narrateRoomState } from "./roomState.js";
 
 const chatLog = document.querySelector<HTMLDivElement>("#chat-log")!;
 const chatForm = document.querySelector<HTMLFormElement>("#chat-form")!;
@@ -14,11 +17,61 @@ function appendLine(text: string): void {
   chatLog.scrollTop = chatLog.scrollHeight;
 }
 
+interface PendingElicitation {
+  properties?: Record<string, unknown>;
+  resolve: (result: { action: "accept" | "decline" | "cancel"; content?: Record<string, string> }) => void;
+}
+
+let pendingElicitation: PendingElicitation | undefined;
+
+/**
+ * Registers the client-side handler for attempt_escape's server-initiated
+ * elicitation (plan-pracy section 2). The chat input doubles as the answer
+ * box while a request is pending - the next thing the player types is the
+ * elicitation response, not a new command. Only form-mode elicitation is
+ * handled (the only mode the server ever sends); URL-mode params carry no
+ * requestedSchema.
+ */
+function registerElicitationHandler(client: Client): void {
+  client.setRequestHandler("elicitation/create", async (request) => {
+    const { message } = request.params;
+    const properties = "requestedSchema" in request.params ? request.params.requestedSchema.properties : undefined;
+    appendLine(`[${message}] (type your answer, or "cancel" to back out)`);
+    return new Promise((resolve) => {
+      pendingElicitation = { properties, resolve };
+    });
+  });
+}
+
+async function narrateAndLog(client: Client): Promise<void> {
+  try {
+    appendLine(await narrateRoomState(client));
+  } catch (error) {
+    appendLine(`(couldn't read room state: ${error instanceof Error ? error.message : String(error)})`);
+  }
+}
+
+async function handleCommand(client: Client, text: string): Promise<void> {
+  const parsed = parseCommand(text);
+  if (!parsed) {
+    appendLine(COMMAND_HINT);
+    return;
+  }
+
+  try {
+    const result = await client.callTool({ name: parsed.tool, arguments: parsed.args });
+    for (const block of result.content ?? []) {
+      if (block.type === "text") appendLine(block.text);
+    }
+  } catch (error) {
+    appendLine(`Action failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
+
+  await narrateAndLog(client);
+}
+
 appendLine("The Last Shift - client shell loaded.");
 
-// Step 2: establish and hold the MCP session for the app's lifetime. Chat
-// input isn't wired to tools/call yet - that's step 4. This only proves the
-// connection itself is real and persistent.
 connectionStatus.textContent = "connecting...";
 getClient()
   .then(async (client) => {
@@ -26,8 +79,8 @@ getClient()
     connectionStatus.textContent = `connected: ${server?.name ?? "unknown"} v${server?.version ?? "?"}`;
     appendLine(`Connected to ${server?.name} v${server?.version}.`);
 
-    // Step 3: sandboxed iframe + AppBridge + PostMessageTransport, loading
-    // the server's ui:// resource. Fullscreen ("Expand") wiring is step 5.
+    registerElicitationHandler(client);
+
     try {
       const host = await mountRoomView(client, roomFrameContainer);
       if (!host) {
@@ -36,17 +89,32 @@ getClient()
     } catch (error) {
       appendLine(`Failed to load room view: ${error instanceof Error ? error.message : String(error)}`);
     }
+
+    await narrateAndLog(client);
+
+    chatForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const value = chatInput.value.trim();
+      if (!value) return;
+      chatInput.value = "";
+      appendLine(`> ${value}`);
+
+      if (pendingElicitation) {
+        const { resolve, properties } = pendingElicitation;
+        pendingElicitation = undefined;
+        if (/^(cancel|decline)$/i.test(value)) {
+          resolve({ action: value.toLowerCase() === "decline" ? "decline" : "cancel" });
+        } else {
+          const propertyKey = Object.keys(properties ?? {})[0] ?? "value";
+          resolve({ action: "accept", content: { [propertyKey]: value } });
+        }
+        return;
+      }
+
+      void handleCommand(client, value);
+    });
   })
   .catch((error: unknown) => {
     connectionStatus.textContent = "connection failed";
     appendLine(`Failed to connect: ${error instanceof Error ? error.message : String(error)}`);
   });
-
-chatForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  const value = chatInput.value.trim();
-  if (!value) return;
-  appendLine(`> ${value}`);
-  appendLine("(tools/call wiring lands in step 4)");
-  chatInput.value = "";
-});
