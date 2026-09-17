@@ -122,15 +122,27 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
 
 - **Status:** otwarte
 - **Zakres:** Cały Komponent 2 specyfikacji (cienka powłoka: klient MCP +
-  host MCP Apps + minimalny interfejs czatu/głosu) nie istnieje. CLI Kimi K3
-  nieinstalowane, żadna praca nie została zdelegowana. `client/` w repo to
-  pusty katalog.
+  host MCP Apps + minimalny interfejs czatu/głosu) nie istnieje. `client/`
+  w repo to pusty katalog. **Wykonawca zmieniony 2026-09-17: buduje Claude
+  Code, nie osobny model frontendowy** (patrz Historia) — zakres i
+  kryterium zamknięcia bez zmian.
 - **Kryterium zamknięcia:** kryterium Bramki 2 (plan-pracy sekcja 5) —
   pełny przebieg end-to-end klient↔serwer działa, widoczny na żywo zegar.
 - **Termin:** Bramka 2 (2026-09-30)
 - **Historia:**
   - sesja 2026-09-13/17 — cały czas tej sesji poszedł w Komponent 1
     (serwer); Komponent 2 nietknięty, zgodnie z kolejnością z Promptu A.
+  - sesja 2026-09-17 (kontynuacja) — CLI Kimi Code (`@moonshot-ai/kimi-code`)
+    zainstalowane globalnie, ale porzucone przed logowaniem: decyzja
+    właściciela zrezygnować z osobnego modelu frontendowego (subskrypcja
+    Kimi wyczerpana limitem z niepewnym przedłużeniem; Kimi nie jest
+    narzędziem sponsora, więc bez wartości pod friction log/OSS;
+    równoległość pracy jako argument za osobnym wykonawcą w większości
+    zniknęła, skoro Komponent 1 jest już skończony). Komponent 2 przechodzi
+    w całości do Claude Code — treść briefu z rozmowy (UI czatu/głosu,
+    host MCP Apps, panel + żywy zegar, punkt do decyzji o voice-only
+    fallbacku) zostaje jako specyfikacja zadania, tylko bez adresata
+    zewnętrznego.
 
 ---
 
@@ -192,8 +204,11 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
      zależne od OI-03).
   3. Hosting serwera pod live-demo dla sędziów (kandydaci: AWS App Runner
      / Lightsail, brak decyzji).
-  4. Framework klienta demo (decyzja Kimi K3, ale Kimi K3 jeszcze
-     niezainstalowane — patrz OI-04).
+  4. Framework klienta demo — **zmiana 2026-09-17: decyzja Claude Code**,
+     nie Kimi K3 (osobny model frontendowy odrzucony, patrz OI-04). Wybór
+     nastąpi przy starcie scaffoldu Komponentu 2, z krótkim uzasadnieniem
+     zapisanym w NOTES.md w chwili decyzji — nie z góry, bez realnej pracy
+     nad klientem, która mogłaby zweryfikować założenia.
 - **Kryterium zamknięcia:** każda z czterech decyzji podjęta i zapisana
   (np. jako aktualizacja plan-pracy-ostatnia-szychta.md sekcja 8).
 - **Termin:** setting/treść — przed nagraniem dema; model Bedrock — razem z
@@ -202,6 +217,9 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
 - **Historia:**
   - sesja 2026-09-13/17 — setting przyjęty roboczo podczas implementacji
     (Kessler Station), pozostałe trzy wciąż w pełni otwarte.
+  - sesja 2026-09-17 (kontynuacja) — punkt 4 przechodzi z "decyzja Kimi K3"
+    na "decyzja Claude Code", zgodnie ze zmianą wykonawcy Komponentu 2
+    (OI-04).
 
 ---
 

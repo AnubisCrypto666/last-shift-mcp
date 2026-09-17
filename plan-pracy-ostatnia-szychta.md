@@ -90,8 +90,9 @@ technical verification", punkt 1).
   sandboxed iframe, obsługuje dwukierunkowy `postMessage` — dokładnie wg
   mechanizmu z `apps.extensions.modelcontextprotocol.io` (RESEARCH.md, B5-bis
   pkt 2), nie wg własnej wymyślonej implementacji.
-- Prosty interfejs czatu/głosu stojący w miejscu NLU Alexy+ (zakres do
-  ustalenia z Kimi K3 na starcie Fazy 1 — priorytet: działa, nie: ładny).
+- Prosty interfejs czatu/głosu stojący w miejscu NLU Alexy+ (zakres i
+  framework ustala Claude Code — patrz "Podział pracy" niżej, decyzja
+  zmieniona 2026-09-17 — priorytet: działa, nie: ładny).
 - **Faza 2 (szlif), nie rdzeń Bramki 1:** demonstruje **obie** ścieżki
   samplingu w jednym demie — raz z deklarowanym `sampling` capability
   (klient sam generuje opis), raz bez (serwer sam woła Bedrock) — to jest
@@ -119,10 +120,18 @@ uogólnioną z timestampów na wyjścia LLM-a:
 
 ### Podział pracy
 
+**Zmiana 2026-09-17:** pierwotny plan zakładał osobny model frontendowy
+(Kimi K3/Kimi Code) budujący Komponent 2 równolegle do Komponentu 1.
+Zrezygnowano z tego na decyzję właściciela: subskrypcja Kimi wyczerpana
+limitem z niepewnym przedłużeniem, Kimi nie jest narzędziem sponsora
+(więc nie daje wartości pod friction log/OSS), a jedyny mocny argument za
+osobnym wykonawcą — równoległość pracy — w większości zniknął, skoro
+Komponent 1 jest już skończony. Zakres, cele i kryteria Komponentu 2 się
+nie zmieniają — zmienia się tylko wykonawca.
+
 | Kto | Za co |
 |---|---|
-| Claude Code | serwer MCP całość (tools/resources/elicitation/sampling/Bedrock fallback/transport), tryb nagrania, testy, integracja klienta, friction log, kontrybucja OSS, teksty zgłoszeniowe |
-| Kimi K3 | cały klient demo: UI czatu/głosu, host MCP Apps (iframe+postMessage), panel pokoju + żywy zegar, stylistyka |
+| Claude Code | serwer MCP całość (tools/resources/elicitation/sampling/Bedrock fallback/transport), tryb nagrania, testy, **cały klient demo (Komponent 2): UI czatu/głosu, host MCP Apps (iframe+postMessage), panel pokoju + żywy zegar, wybór frameworka**, friction log, kontrybucja OSS, teksty zgłoszeniowe |
 | Ty | testy z perspektywy gracza, nagranie wideo (w trybie nagrania!), wysyłka, wszystko wymagające zalogowanego konta |
 
 ### Zadania Fazy 1 — pierwszy krok
@@ -142,8 +151,11 @@ w About nie spełnia wymogu.
   (transport Streamable HTTP), `@modelcontextprotocol/ext-apps/server` do
   rejestracji zasobu `ui://`, AWS SDK for JavaScript v3 (`@aws-sdk/client-bedrock-runtime`)
   do fallbacku samplingu.
-- **Klient:** budowany przez Kimi K3 (framework do ustalenia przez niego —
-  prawdopodobnie React), `@modelcontextprotocol/sdk` po stronie klienta,
+- **Klient:** budowany przez Claude Code (zmiana 2026-09-17, patrz "Podział
+  pracy" wyżej), framework do wyboru przez Claude Code przy starcie
+  scaffoldu — uzasadnienie wyboru zapisane w NOTES.md w momencie decyzji,
+  nie z góry tutaj. Pakiet MCP klienta z tej samej rodziny v2 co serwer
+  (do zweryfikowania empirycznie, jaki dokładnie pakiet — nie zgadywać),
   ręczna implementacja hosta MCP Apps wg specyfikacji jeśli
   `@modelcontextprotocol/ext-apps` nie ma gotowego helpera klienckiego
   (do zweryfikowania na starcie Fazy 1 — pierwszy realny kandydat na
@@ -316,4 +328,7 @@ ten dodatek, z którego rezygnujemy pierwszy, zgodnie z konsekwencją Bramki 3.
   zależne od dostępności w ramach $150 kredytów.
 - Hosting serwera pod live-demo dla sędziów (App Runner / Lightsail / inne)
   — decyzja Fazy 1/2, nie fabrykuję pewności, której nie mam.
-- Framework klienta — decyzja Kimi K3.
+- Framework klienta — decyzja Claude Code (zmiana 2026-09-17; pierwotnie
+  planowano decyzję Kimi K3, patrz "Podział pracy" w sekcji 2), do podjęcia
+  przy starcie scaffoldu Komponentu 2, uzasadniona w NOTES.md w chwili
+  wyboru.

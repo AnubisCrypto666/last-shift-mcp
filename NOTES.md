@@ -451,3 +451,13 @@ documented).
 **Not done in this step, deliberately:** no server code changed, no
 Component 2 work started. This was a read-ahead per the explicit
 instruction to keep it to "one manual/prep action," not a build step.
+
+## 2026-09-17 — Kimi Code CLI installed then abandoned unlogged-in
+
+`@moonshot-ai/kimi-code@2.0.0` (confirmed via `npm view` - the
+`@kimi-code/cli` name a web search suggested doesn't exist, 404) installed
+globally (`npm install -g`, Node v24.14.0 satisfies its `>=22.19.0`
+engine requirement) - then abandoned before `/login` on owner's decision
+to drop the separate frontend-model plan entirely (see OI-04/OI-07 in
+OPEN-ITEMS.md for the reasoning). Zero work lost - no API key was ever
+entered anywhere, chat included.
