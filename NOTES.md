@@ -210,3 +210,33 @@ gate date.
 union of a single content block *or* an array of them (tsc caught this
 immediately - not documented anywhere obvious, just how the type resolved)
 - handled by normalizing to the first element either way.
+
+## 2026-09-17 — Step 4.6: ui://room-map, and Component 1 is now complete
+
+`registerAppResource` from `@modelcontextprotocol/ext-apps/server` (the
+exact helper the step 3 investigation found) type-checked against our v2
+server on the first try - no friction, which is itself worth recording as
+a contrast to step 3's discovery that it was flatly incompatible with the
+v1 foundation. The migration decision paid off exactly as expected.
+
+Linked `examine_room`, `use_item`, and `attempt_escape` to the resource via
+`_meta: { ui: { resourceUri: ROOM_MAP_URI } }` on each tool's config -
+plain fields on the base SDK's `ToolConfig`, no need to switch those three
+tools to `registerAppTool` itself (that wrapper mainly normalizes the
+deprecated `_meta["ui/resourceUri"]` key for older hosts, which doesn't
+apply to a single modern host we're building ourselves). Confirmed via a
+`tools/list` assertion that the metadata is actually on the wire, not just
+assumed from reading the tool's registration code.
+
+The countdown ticks client-side from a JS seed embedded in the HTML at
+resource-read time (`remainingSeconds`) rather than depending on any
+postMessage round-trip - the sandboxed-iframe/postMessage HOST mechanics
+are the client's job (plan-pracy Component 2, Kimi K3), not the server's;
+the resource only needs to hand over valid, self-contained HTML.
+
+**All of plan-pracy section 2, Component 1 (the MCP server) is now built
+and passing:** room://state, examine_room (sampling→Bedrock→base
+fallback), recorded demo mode, use_item, attempt_escape (elicitation),
+ui://room-map. 70 tests, confirmed live via a full init→tools/list→resources/read
+sequence against the real running dev server, ten days before Gate 1
+(2026-09-27).

@@ -3,6 +3,7 @@ import { z } from "zod/v4";
 import { createBedrockNarrativeGenerator, type NarrativeGenerator } from "../bedrock.js";
 import { baseDescription, buildNarrationPrompt, recordedFixture, type ExamineTarget } from "./descriptions.js";
 import { CONTROL_PANEL_FRAGMENT, MULTITOOL_ITEM, getStatus, type RoomState, type RoomStatus } from "./state.js";
+import { ROOM_MAP_URI } from "./uiRoomMap.js";
 
 export interface ExamineRoomDeps {
   /** Fallback narrator when the client doesn't declare `sampling`. */
@@ -84,6 +85,7 @@ export function registerExamineRoomTool(server: McpServer, state: RoomState, dep
       inputSchema: z.object({
         target: z.enum(["control_panel", "toolbox", "vent"]).optional().describe("What to examine; omit to look around the whole room."),
       }),
+      _meta: { ui: { resourceUri: ROOM_MAP_URI } },
     },
     async (args, ctx) => {
       const status = getStatus(state);

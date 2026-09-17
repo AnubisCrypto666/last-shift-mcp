@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod/v4";
 import { statusOverMessage } from "./examineRoom.js";
 import { VENT_FRAGMENT, getStatus, type RoomState } from "./state.js";
+import { ROOM_MAP_URI } from "./uiRoomMap.js";
 
 /**
  * use_item is deliberately plain, deterministic text - no sampling/Bedrock
@@ -37,6 +38,7 @@ export function registerUseItemTool(server: McpServer, state: RoomState): void {
         item: z.enum(["multitool"]).describe("The item to use, from your inventory."),
         target: z.enum(["vent"]).describe("What to use it on."),
       }),
+      _meta: { ui: { resourceUri: ROOM_MAP_URI } },
     },
     async (args) => {
       const status = getStatus(state);

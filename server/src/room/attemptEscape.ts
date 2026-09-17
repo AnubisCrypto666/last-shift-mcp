@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod/v4";
 import { statusOverMessage } from "./examineRoom.js";
 import { getEscapeCode, getStatus, type RoomState } from "./state.js";
+import { ROOM_MAP_URI } from "./uiRoomMap.js";
 
 export const WRONG_CODE_TIME_PENALTY_SECONDS = 20;
 
@@ -43,6 +44,7 @@ export function registerAttemptEscapeTool(server: McpServer, state: RoomState): 
       description:
         "Make a final attempt to escape Maintenance Bay 7. You'll be asked to enter the escape code you've assembled from the fragments you've found.",
       inputSchema: z.object({}),
+      _meta: { ui: { resourceUri: ROOM_MAP_URI } },
     },
     async (_args, ctx) => {
       const status = getStatus(state);
