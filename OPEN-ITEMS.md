@@ -118,14 +118,15 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
 
 ---
 
-## OI-04: Klient demo (Komponent 2) — niezaczęty
+## OI-04: Klient demo (Komponent 2) — zmierzone częściowo
 
-- **Status:** otwarte
+- **Status:** zmierzone częściowo (Kroki 1-4 z 7 gotowe i zweryfikowane
+  end-to-end; brakuje Kroku 5 fullscreen/expand i Kroku 6 przeglądu
+  Accessibility), nie zamknięte
 - **Zakres:** Cały Komponent 2 specyfikacji (cienka powłoka: klient MCP +
-  host MCP Apps + minimalny interfejs czatu/głosu) nie istnieje. `client/`
-  w repo to pusty katalog. **Wykonawca zmieniony 2026-09-17: buduje Claude
-  Code, nie osobny model frontendowy** (patrz Historia) — zakres i
-  kryterium zamknięcia bez zmian.
+  host MCP Apps + minimalny interfejs czatu/głosu). **Wykonawca zmieniony
+  2026-09-17: buduje Claude Code, nie osobny model frontendowy** (patrz
+  Historia) — zakres i kryterium zamknięcia bez zmian.
 - **Kryterium zamknięcia:** kryterium Bramki 2 (plan-pracy sekcja 5) —
   pełny przebieg end-to-end klient↔serwer działa, widoczny na żywo zegar.
 - **Termin:** Bramka 2 (2026-09-30)
@@ -143,6 +144,22 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
     host MCP Apps, panel + żywy zegar, punkt do decyzji o voice-only
     fallbacku) zostaje jako specyfikacja zadania, tylko bez adresata
     zewnętrznego.
+  - sesja 2026-09-17 (druga sesja tego dnia) — Kroki 1-4 z 7 zbudowane z
+    commitem po każdym: (1) scaffold Vite w `client/`, (2) trwałe
+    połączenie MCP klient↔serwer (odkryło i wymusiło naprawę realnej
+    blokady CORS na serwerze, nie tylko walidacji Origin), (3) sandboxed
+    iframe + `AppBridge` + `PostMessageTransport` renderujący
+    `ui://room-map` z tykającym na żywo zegarem, (4) czat → `tools/call`,
+    elicitation obsługiwana przez czat, narracja tekstowa stanu pokoju.
+    **Pełny przebieg end-to-end potwierdzony dwiema niezależnymi
+    metodami** — silniejszy dowód niż zwykłe "zmierzone": skryptowany
+    playthrough przez prawdziwego `Client` (examine control_panel →
+    examine toolbox → use multitool on vent → escape z kodem `7XQ2` →
+    sukces, plus ścieżki złego kodu i "decline"), ORAZ niezależnie
+    realne kliknięcie właściciela w przeglądarce z tym samym wynikiem.
+    Krok 5 (przycisk fullscreen/expand) i Krok 6 (przegląd Accessibility
+    względem CSS) pozostają niewykonane — sesja zamknięta przed nimi na
+    wyraźną decyzję właściciela.
 
 ---
 
@@ -172,14 +189,24 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
 
 - **Status:** otwarte (zmierzone jako "mamy kandydatów", nie zamknięte jako
   "zgłoszone")
-- **Zakres:** Cztery wpisy w FRICTION-LOG.md, każdy z rozdzielonym
+- **Zakres:** Pięć wpisów w FRICTION-LOG.md/NOTES.md, każdy z rozdzielonym
   mechanizmem (potwierdzonym) i propozycją poprawki (naszą, nie
   potwierdzoną): (1) deprecated Origin-validation w SDK v1 bez zamiennika,
   (2) przykład referencyjny SDK myli 400/404 dla nieznanej sesji, (3)
   nieudokumentowana opcja `allowedOrigins` w `@modelcontextprotocol/express`
-  z zaskakującym domyślnym zachowaniem. Czwarty wpis dotyczy tego samego
-  odkrycia z innej strony (patrz FRICTION-LOG.md). Żaden nie został jeszcze
-  zgłoszony jako Issue/PR.
+  z zaskakującym domyślnym zachowaniem (czwarty wpis dotyczy tego samego
+  odkrycia z innej strony). **Piąty, nowy kandydat (2026-09-17, druga
+  sesja):** `@modelcontextprotocol/express`'s `createMcpExpressApp()`
+  faktycznie używa pakietu `cors`, ale wyłącznie w wewnętrznym routerze
+  metadanych OAuth (`.well-known/oauth-*`) — główne trasy `/mcp`, które
+  pakiet oczekuje, że deweloper sam dopisze, dostają zero nagłówków
+  `Access-Control-*`. Realnie zablokowało to przeglądarkowego klienta
+  (`client/`) w ciszy — `curl` nie ujawnia problemu, bo nie egzekwuje
+  CORS. To trzeci, odrębny przypadek luki w tym samym pakiecie (po
+  `allowedOrigins`'s dwóch wcześniejszych wpisach) — wzorzec, nie
+  przypadek, wart odnotowania w samym zgłoszeniu. Pełny opis i naprawa:
+  `server/src/app.ts` (`corsForMcp`), NOTES.md 2026-09-17. Żaden z pięciu
+  nie został jeszcze zgłoszony jako Issue/PR.
 - **Kryterium zamknięcia:** zgodnie z planem sekcja 7 — wybrany wpis
   zgłoszony jako Issue z reprodukcją do jednego z priorytetowych repo
   (`ext-apps` → `inspector` → TypeScript SDK), i jeśli poprawka jest mała,
@@ -189,6 +216,11 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
   - sesja 2026-09-13/17 — cztery kandydaci zebrani podczas budowy rdzenia,
     każdy z pełną reprodukcją; zero zgłoszeń wysłanych, zgodnie z planem
     (priorytet to rdzeń, nie OSS, przed Bramką 1).
+  - sesja 2026-09-17 (druga sesja tego dnia) — piąty kandydat (CORS gap,
+    trzeci przypadek w `@modelcontextprotocol/express`) zebrany podczas
+    budowy Komponentu 2, z pełną reprodukcją i naprawą już wdrożoną w
+    naszym kodzie; nadal świadomie nie zgłoszony, zgodnie z planem
+    (Faza 2, nie teraz).
 
 ---
 
@@ -204,11 +236,16 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
      zależne od OI-03).
   3. Hosting serwera pod live-demo dla sędziów (kandydaci: AWS App Runner
      / Lightsail, brak decyzji).
-  4. Framework klienta demo — **zmiana 2026-09-17: decyzja Claude Code**,
-     nie Kimi K3 (osobny model frontendowy odrzucony, patrz OI-04). Wybór
-     nastąpi przy starcie scaffoldu Komponentu 2, z krótkim uzasadnieniem
-     zapisanym w NOTES.md w chwili decyzji — nie z góry, bez realnej pracy
-     nad klientem, która mogłaby zweryfikować założenia.
+  4. Framework klienta demo — **zdecydowane 2026-09-17 (druga sesja):
+     Vite + vanilla TypeScript, bez frameworka komponentowego.**
+     Uzasadnienie (przedstawione właścicielowi w briefie Komponentu 2 i
+     zaakceptowane): zakres UI (log czatu, panel iframe, przycisk expand)
+     nie uzasadnia narzutu stanu/komponentów; PLAYBOOK §5 faworyzuje
+     minimalne zależności; Claude Code pracuje sam, bez podziału na
+     komponenty między ludźmi; `ext-apps` i tak eksponuje `./react`
+     osobno dla strony widoku (wewnątrz iframe'a), nie hosta — wybór
+     frameworka hosta jest od tego niezależny. Zaimplementowane w Kroku 1
+     Komponentu 2 (`client/`), potwierdzone działające przez Kroki 1-4.
 - **Kryterium zamknięcia:** każda z czterech decyzji podjęta i zapisana
   (np. jako aktualizacja plan-pracy-ostatnia-szychta.md sekcja 8).
 - **Termin:** setting/treść — przed nagraniem dema; model Bedrock — razem z
@@ -220,6 +257,10 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
   - sesja 2026-09-17 (kontynuacja) — punkt 4 przechodzi z "decyzja Kimi K3"
     na "decyzja Claude Code", zgodnie ze zmianą wykonawcy Komponentu 2
     (OI-04).
+  - sesja 2026-09-17 (druga sesja tego dnia) — punkt 4 faktycznie
+    zdecydowany (Vite + vanilla TypeScript) i wdrożony w Kroku 1
+    Komponentu 2, z uzasadnieniem. Trzy pozostałe punkty (setting/treść,
+    model Bedrock, hosting) wciąż otwarte.
 
 ---
 

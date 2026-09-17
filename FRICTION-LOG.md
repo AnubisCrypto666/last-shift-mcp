@@ -177,3 +177,69 @@ Each entry:
   behavior change, since the implicit localhost default is a reasonable,
   safe choice - the gap is purely that it isn't written down anywhere a
   reader would see it before hitting the symptom.
+
+## 2026-09-17 — `@modelcontextprotocol/express`: CORS support exists, but only on an unrelated router - a third case in the same package
+
+- **Action attempted:** Connect a real browser-based MCP client
+  (`client/`, Vite dev server on `http://localhost:5173`) to the `/mcp`
+  Express routes over Streamable HTTP, for Component 2 step 2.
+- **Steps:** Confirmed Origin validation itself was already correct (an
+  earlier fix that same session set `MCP_ALLOWED_ORIGINS=localhost`, and
+  `curl -H "Origin: http://localhost:5173"` returned a clean `200`). The
+  owner reported the browser still failed and explicitly asked not to
+  trust another `curl` round - to check the real browser Network tab/
+  console instead, since `curl` doesn't enforce CORS the way a browser
+  does. Re-inspected the same `200` response's headers for
+  `Access-Control-*` - none present. Checked for an `OPTIONS` preflight
+  handler - Express's default `Allow` response, no CORS headers there
+  either. Grepped `node_modules/@modelcontextprotocol/express/dist/index.cjs`
+  directly for `cors` rather than assuming it was simply unsupported.
+- **Expected result:** Either `createMcpExpressApp()` has no CORS support
+  at all (matching the README, which never mentions CORS), or - if it
+  does ship `cors`, as the grep was about to reveal - it applies to the
+  routes a consumer would actually be using it for.
+- **Actual result:** The package *does* import and use the `cors` npm
+  package (`router.use((0, cors.default)())`, `src/auth/metadataRouter.ts`)
+  - but only inside `metadataHandler()`, which builds the router for the
+  OAuth *metadata discovery* endpoints (`.well-known/oauth-*`). The `/mcp`
+  transport routes - the ones this project (and almost certainly most
+  consumers) actually builds their server on - get zero CORS treatment.
+  A real browser client is silently blocked by its own CORS enforcement,
+  while `curl` (which never enforces CORS) reports a perfectly healthy
+  `200` the whole time - the exact trap the owner's instruction was
+  aimed at avoiding.
+- **Severity:** major for anyone building a browser-facing MCP client
+  against this package's main documented path - not a five-minute fix to
+  diagnose without reading the compiled source, since the symptom
+  (browser fails, `curl` succeeds) looks identical to a dozen other CORS
+  misconfigurations and the README gives no hint that `cors` is even a
+  dependency.
+- **Workaround:** hand-written `corsForMcp()` middleware in
+  `server/src/app.ts`, mounted via `app.use()` right after
+  `createMcpExpressApp()`, reusing the same `allowedOrigins` hostname list
+  already passed for Origin validation. Sets `Access-Control-Allow-Origin`
+  (reflected, not `*`), `-Methods`, `-Headers`, and
+  `Access-Control-Expose-Headers: Mcp-Session-Id` (without exposing it, a
+  browser client can get a `200` but still be unable to read the session
+  id header the SDK needs for every subsequent request), plus a `204`
+  short-circuit for `OPTIONS` preflight. 3 new tests.
+- **Mechanism (confirmed):** `createMcpExpressApp()` never applies `cors()`
+  (or any `Access-Control-*` header) to the app-level routes a consumer
+  mounts on the object it returns - `cors()` is wired exclusively inside
+  the separate, self-contained `metadataHandler()` router used for OAuth
+  metadata discovery, a narrower sub-feature most MCP servers (including
+  this one) don't even use. This is the **third**, structurally distinct
+  gap found in this same package this project (see the two `allowedOrigins`
+  entries above) - a pattern, not a one-off: cross-origin browser access
+  keeps being solved for one specific internal use case and not exposed
+  for the general one.
+- **Proposed fix (our suggestion, not confirmed):** either apply the same
+  `cors()` middleware (parameterized by `allowedOrigins`, mirroring the
+  existing Origin-validation option) to the main app returned by
+  `createMcpExpressApp()`, or - if that's considered out of scope for the
+  transport helper - document explicitly in the README that CORS is the
+  consumer's own responsibility for `/mcp` and that `Mcp-Session-Id` must
+  be added to `Access-Control-Expose-Headers` for any browser-based
+  client to function at all. The exposed-headers detail in particular is
+  easy to miss even for a consumer who does think to add their own CORS
+  middleware.
