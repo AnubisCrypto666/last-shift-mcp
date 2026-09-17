@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/server";
 import { registerRoomStateResource } from "./room/roomResource.js";
 import { registerExamineRoomTool, type ExamineRoomDeps } from "./room/examineRoom.js";
+import { registerUseItemTool } from "./room/useItem.js";
 import { createInitialRoomState } from "./room/state.js";
 
 export interface McpServerOptions {
@@ -28,6 +29,7 @@ export function createMcpServer(options: McpServerOptions = {}): McpServer {
   const state = createInitialRoomState();
   registerRoomStateResource(server, state);
   registerExamineRoomTool(server, state, options.roomDeps);
+  registerUseItemTool(server, state);
 
   return server;
 }
