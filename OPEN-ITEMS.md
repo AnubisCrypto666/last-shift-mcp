@@ -12,13 +12,15 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
 
 ## OI-01: Bramka 1 — weryfikacja w MCP Inspectorze
 
-- **Status:** zmierzone częściowo, nie zamknięte
+- **Status:** zmierzone częściowo (CLI kompletne; wizualne potwierdzenie
+  właściciela w GUI oczekujące), nie zamknięte
 - **Zakres:** Kryterium Bramki 1 (plan-pracy sekcja 5) mówi dosłownie
   "serwer odpowiada poprawnie w MCP Inspectorze". Dotąd cały rdzeń
   (room://state, examine_room, use_item, attempt_escape, ui://room-map)
   zweryfikowany przez: własny klient MCP + `InMemoryTransport`
-  (testy jednostkowe/integracyjne, 70/70), oraz ręczne `curl` przez
-  Streamable HTTP. Inspector jako taki nigdy nie został uruchomiony.
+  (testy jednostkowe/integracyjne, 70/70), ręczne `curl` przez Streamable
+  HTTP, i teraz przez realny, niezależny klient — `@modelcontextprotocol/inspector`
+  w trybie `--cli` — przeciwko żywemu serwerowi.
 - **Kryterium zamknięcia:** uruchomienie `npx @modelcontextprotocol/inspector`
   przeciwko żywemu serwerowi, potwierdzenie pełnego cyklu sesji i widoczności
   wszystkich narzędzi/zasobów w UI Inspectora, w tym renderowania `ui://room-map`.
@@ -27,6 +29,17 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
   - sesja 2026-09-13/17 — cały rdzeń serwera zbudowany i zweryfikowany innymi
     metodami (testy, curl); weryfikacja w samym Inspectorze odłożona, nie
     wykonana w tym bloku sesji.
+  - sesja 2026-09-17 (kontynuacja) — Inspector w trybie CLI (`--cli`)
+    potwierdza: `tools/list` (wszystkie 3 narzędzia + `_meta.ui.resourceUri`
+    na każdym), `resources/list` (oba zasoby, poprawne MIME), `resources/read`
+    na `ui://room-map` (realny, kompletny HTML), `tools/call` na
+    `examine_room` (realna narracja), `--app-info` (potwierdza `hasApp: true`
+    na wszystkich trzech), `--strict` (0 problemów ze schematem). Metodologia
+    zmieniona na wyraźną prośbę właściciela: Claude Code weryfikuje
+    programowo przez CLI (bez dostępu do przeglądarki — Claude in Chrome
+    świadomie nieużyty), a wizualne potwierdzenie renderowania w GUI
+    Inspectora (`http://127.0.0.1:6274`) wykonuje sam właściciel i relacjonuje
+    wynik. Oczekuje na tę relację, zanim całość przejdzie na pełne "zmierzone".
 
 ---
 

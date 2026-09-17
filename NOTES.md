@@ -240,3 +240,49 @@ fallback), recorded demo mode, use_item, attempt_escape (elicitation),
 ui://room-map. 70 tests, confirmed live via a full init→tools/list→resources/read
 sequence against the real running dev server, ten days before Gate 1
 (2026-09-27).
+
+## 2026-09-17 — OI-01: MCP Inspector verification via CLI mode
+
+`npx @modelcontextprotocol/inspector --cli <url> --method <m>` runs a real,
+independent MCP client (not our own test harness) against the live dev
+server. Checked the exact flag surface via `--cli --help` rather than
+guessing (flags differ from the GUI's implicit config) - confirmed
+`--method`, `--tool-name`, `--tool-arg`, `--uri`, `--app-info`, `--strict`.
+
+Confirmed against the real running server (`npm run dev`, `http://127.0.0.1:3000/mcp`):
+- `tools/list` - all three tools present (`examine_room`, `use_item`,
+  `attempt_escape`), full input schemas, each carrying
+  `_meta.ui.resourceUri: "ui://room-map"`.
+- `resources/list` - both resources present: `room://state`
+  (`application/json`) and `ui://room-map` (`text/html;profile=mcp-app`).
+- `resources/read --uri "ui://room-map"` - returns real, complete HTML
+  (room panel, inventory panel, fragments panel, vent status, a
+  client-side ticking countdown script), not an error or an empty shell.
+- `tools/call --tool-name examine_room --tool-arg target=toolbox` -
+  succeeds, returns real narration text (base description path, no AWS
+  credentials locally, consistent with the 2026-09-17 fallback finding
+  above).
+- `--app-info --method tools/list` - a purpose-built probe for exactly
+  this: confirms `hasApp: true` and the resolved `resourceUri`/
+  `resourceMimeType` for all three tools in one pass.
+- `--strict --method tools/list` - exit 0, no schema-portability issues
+  reported.
+
+**One nuance worth recording, not a defect:** room state is scoped
+per-session by design (`src/mcpServer.ts` comment, confirmed at
+`registerRoomServer`: a fresh `RoomState` per session). Each separate
+`inspector --cli` invocation opens its own session, so a side effect from
+one invocation (e.g. `examine_room target=toolbox` adding the multitool)
+is not visible in a `resources/read` from a *different* invocation - this
+is expected session isolation, not evidence against state persistence.
+Within-session persistence after a tool call is already covered by the
+HTTP integration tests (Step 4.6, 70/70), which is why this CLI pass
+didn't try to prove it again by chaining requests within one process (the
+CLI itself has no multi-method-per-session mode).
+
+**Not covered by CLI, left to the owner's own visual check in the
+Inspector GUI (`http://127.0.0.1:6274`):** whether `ui://room-map` is
+actually *rendered* as a preview panel in the Inspector UI, versus shown
+as a raw HTML string in a text box. The CLI can only confirm the bytes are
+correct HTML with the right MIME type - rendering is a GUI-only question.
+
