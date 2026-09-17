@@ -175,15 +175,28 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
 
 - **Status:** otwarte
 - **Zakres:** plan-pracy sekcja 2/5: demo ma pokazać **obie** ścieżki
-  samplingu w `examine_room` — raz z klientem deklarującym `sampling`
+  narracji w `examine_room` — raz z klientem deklarującym `sampling`
   capability (klient sam generuje opis), raz bez (serwer woła Bedrock).
   Dotąd zweryfikowana tylko ścieżka bez capability (fallback). Ścieżka z
   `sampling` zadeklarowanym przez klienta nigdy nie została przetestowana
   end-to-end (kod ją obsługuje — `narrateDescription` ma gałąź
   `supportsSampling` — ale brak testu/dema z realnym klientem, który
   faktycznie odpowiada na `sampling/createMessage`).
+- **Skorygowane 2026-09-17:** ta pozycja **przestaje być "dowodem
+  wierności mechanizmowi Alexy+"** — ustalone wprost z dokumentacji
+  Amazona (`mcp-toolkit-client-lifecycle.html`, payload `initialize`
+  realnego klienta Alexa+: capabilities = `{ "roots": { "listChanged":
+  true } }`, zero `sampling`), że prawdziwa Alexa+ nigdy nie zadeklaruje
+  `sampling` — więc ta ścieżka nigdy by się nie odpaliła z realnym
+  klientem Alexa+. Staje się **dodatkowym, uczciwie nazwanym beatem demo
+  dla ogólnej zgodności z MCP** (pokazuje, że serwer poprawnie obsługuje
+  `sampling` dla hostów, które je deklarują — Claude Desktop, ChatGPT i
+  podobne), nie elementem wiarygodności ścieżki Alexa+. Priorytet wobec
+  Bramki 2 bez zmian — nadal nie blokuje.
 - **Kryterium zamknięcia:** kryterium Bramki 2 (plan-pracy sekcja 2,
-  Komponent 2) — demo pokazuje obie ścieżki w jednym przebiegu.
+  Komponent 2) — demo pokazuje obie ścieżki w jednym przebiegu, opisane w
+  README zgodnie z ich realną rolą (Bedrock = ścieżka Alexa+, sampling =
+  cecha dla innych hostów MCP).
 - **Termin:** Bramka 2 / Faza 2 (nie blokuje Bramki 1 — jawnie wyłączone w
   specyfikacji sekcja 5)
 - **Historia:**
@@ -191,6 +204,10 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
     testem jednostkowym z podstawionym `requestSampling` (patrz
     `test/room/examineRoom.test.ts`), ale nigdy nie uruchomiony przez
     prawdziwego klienta deklarującego tę capability.
+  - sesja 2026-09-17 (kontynuacja) — rola tej pozycji skorygowana po
+    konsultacji zewnętrznej zweryfikowanej wprost w dokumentacji Amazona:
+    sampling nie jest ścieżką Alexy+, jest cechą dla innych hostów MCP.
+    plan-pracy sekcja 2/4 zaktualizowana zgodnie z tym ustaleniem.
 
 ---
 

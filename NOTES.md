@@ -322,3 +322,43 @@ Also confirmed while fetching the same page: the documented Alexa+
 `initialize` request declares `"capabilities": { "roots": { "listChanged":
 true } }` - no `sampling` key. Implication captured under the 2026-09-17
 plan-pracy correction entry below.
+
+## 2026-09-17 — Real Alexa+ never declares `sampling` (spec correction)
+
+Source: `developer.amazon.com/docs/alexaplus/add-ons/mcp-toolkit-client-lifecycle.html`
+(page footer: "Last updated: Jul 10, 2026"), verified directly via fetch
+today, cross-checked independently by an external model consultation and
+found to agree. Verbatim "MCP initialize request payload" example, the
+documented shape of a real Alexa+ client's handshake:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "initialize",
+  "id": "4e3bdaee-0",
+  "params": {
+    "protocolVersion": "2025-03-26",
+    "capabilities": { "roots": { "listChanged": true } },
+    "clientInfo": { "name": "Alexa+ MCP Client", "version": "1.0.0" }
+  }
+}
+```
+
+`capabilities` contains only `roots` - no `sampling` key anywhere on the
+page's client-side examples. Conclusion, not an assumption: a real Alexa+
+client will never declare the `sampling` capability, so `examine_room`'s
+sampling branch (`supportsSampling` in `src/room/examineRoom.ts`) will
+never actually trigger against production Alexa+. The Bedrock path is not
+a fallback-of-last-resort relative to Alexa+ - it's the path that actually
+represents Alexa+'s real behavior. Sampling stays valuable and stays in
+the code, but its honestly-described role changes: it's a feature for
+*other* MCP hosts that do declare the capability (Claude Desktop, ChatGPT,
+etc.), not evidence of fidelity to the Alexa+ mechanism specifically.
+
+This is a fact correction to plan-pracy-ostatnia-szychta.md (sections 2
+and 4) and to OPEN-ITEMS.md's OI-08 card, not a code change - the sampling
+branch, its unit test, and its future dual-path demo value are all
+unaffected. Material for README "Demo honesty" / known-issues in Phase 3:
+explaining *why* the demo leads with Bedrock rather than sampling for the
+Alexa+-facing narrative, backed by Amazon's own documented client
+capabilities rather than our own guess.

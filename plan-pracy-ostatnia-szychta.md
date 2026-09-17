@@ -41,7 +41,8 @@ odliczającym, musi rozwiązać zagadki i uciec.
 
 - **Narzędzia (3):**
   - `examine_room` — bada bieżące pomieszczenie/obiekt. Generuje opis przez
-    sampling (patrz niżej) — z fallbackiem na Bedrock.
+    Bedrock (patrz niżej) — z opcjonalną ścieżką sampling dla hostów, które
+    ją deklarują (nie dotyczy Alexy+, patrz niżej).
   - `use_item` — łączy/stosuje przedmiot z ekwipunku, żeby rozwiązać zagadkę
     lub odsłonić nowy fragment pomieszczenia.
   - `attempt_escape` — decydujące działanie końcowe. Blokowane przez
@@ -56,13 +57,22 @@ odliczającym, musi rozwiązać zagadki i uciec.
   request o strukturalny input (kod ucieczki); walidacja server-side; błędny
   kod generuje nowy zwrot akcji zamiast twardej porażki (napięcie zamiast
   ślepego zaułka).
-- **Sampling + fallback AWS Builder:** `examine_room` w pierwszej kolejności
-  próbuje MCP sampling (klient dostarcza LLM). Większość hostów MCP —
-  włącznie z naszym własnym cienkim klientem w trybie domyślnym — nie
-  deklaruje capability `sampling`, więc serwer w takim wypadku woła
-  bezpośrednio **Amazon Bedrock**. To jest realna, niezbędna potrzeba
-  techniczna (produkcyjna Alexa+ też może nie wspierać samplingu), nie
-  doczepiona na siłę integracja AWS.
+- **Sampling + fallback AWS Builder — skorygowane 2026-09-17 względem
+  realnej Alexy+:** `examine_room` w pierwszej kolejności próbuje MCP
+  sampling (klient dostarcza LLM), a dopiero gdy capability nie jest
+  zadeklarowana, woła bezpośrednio **Amazon Bedrock**. Ustalone dziś wprost
+  z dokumentacji Amazona (`developer.amazon.com/docs/alexaplus/add-ons/
+  mcp-toolkit-client-lifecycle.html`, przykładowy payload `initialize`
+  prawdziwego klienta Alexa+): deklarowane capabilities to wyłącznie
+  `{ "roots": { "listChanged": true } }` — **zero `sampling`**. Wniosek:
+  prawdziwa Alexa+ nigdy nie odpali ścieżki sampling — **to ścieżka
+  Bedrock jest tą, która faktycznie odpowiada zachowaniu Alexy+**, nie
+  dekoracją obok niej. Ścieżka sampling zostaje w kodzie i jest realną,
+  uczciwie nazwaną cechą — ale dla **innych** hostów MCP, które
+  capability faktycznie deklarują (Claude Desktop, ChatGPT i podobne),
+  nie dla ścieżki Alexa+. Nie jest to "dowód wierności mechanizmowi
+  Alexy+" (patrz poprawiona karta OI-08 w OPEN-ITEMS.md), tylko dodatkowy,
+  uczciwie opisany beat demo pod ogólną zgodność z MCP.
 - **Transport:** Streamable HTTP zgodnie z 2025-11-25 (pojedynczy endpoint
   `/mcp`, `MCP-Session-Id`, `MCP-Protocol-Version`, walidacja `Origin`) — wg
   dokładnych wymogów spisanych w RESEARCH.md, sekcja B6.
@@ -160,8 +170,20 @@ w About nie spełnia wymogu.
 - **MCP Apps** — realny `ui://` resource + sandboxed iframe + postMessage,
   wg specyfikacji 2026-01-26, nie własny wymyślony mechanizm UI.
 - **AWS Bedrock** — realny fallback samplingu, uzasadniony technicznie
-  (większość hostów MCP nie wspiera samplingu), nie doczepiony pod
-  mini-wyzwanie.
+  (większość hostów MCP nie wspiera samplingu) — **w tym, potwierdzone
+  2026-09-17 z dokumentacji Amazona, sama Alexa+**, która w swoim
+  `initialize` deklaruje wyłącznie `{ "roots": { "listChanged": true } }`,
+  bez `sampling`. To znaczy, że dla ścieżki Alexa+ Bedrock nie jest
+  fallbackiem na wypadek braku samplingu — jest **jedyną realną ścieżką
+  narracji**, jaka kiedykolwiek się odpali z prawdziwym klientem Alexa+.
+  Nie doczepiony pod mini-wyzwanie AWS Builder — to rdzeń działania
+  `examine_room` dla docelowego hosta.
+- **MCP sampling** — realna, działająca ścieżka w kodzie, ale uczciwie
+  nazwana jako cecha dla **innych** hostów MCP deklarujących tę
+  capability (Claude Desktop, ChatGPT i podobne), nie dla Alexy+ (patrz
+  wyżej). Nie usuwamy jej — pokazuje głębię integracji z samym MCP — ale
+  nie prezentujemy jej przed sędzią jako coś, co odpali się z realną
+  Alexą+, bo to nieprawda wg jej własnej deklaracji capabilities.
 - **Amazon Devices Builder Tools** — zainstalowany zgodnie z oryginalnym
   briefem (krok A3), ale — jak ustaliliśmy w RESEARCH.md — opisany wyłącznie
   jako narzędzie Fire OS/Vega OS, nie Alexa+. Użyjemy go jako ogólnego
