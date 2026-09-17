@@ -1,38 +1,15 @@
 import { describe, expect, it } from "vitest";
 import request from "supertest";
 import { createApp } from "../src/app.js";
+import { SESSION_HEADER, initializeRequest, initializeSession } from "./helpers/mcpClient.js";
 
 /**
  * Transport-level tests against synthetic, controlled JSON-RPC requests -
  * no live network, no deployed server, no Bedrock/AWS calls. Exercises the
  * session lifecycle and Origin validation required by RESEARCH.md B6
- * (MCP 2025-11-25, Streamable HTTP). Room-logic tools/resources land in a
- * later step (plan-pracy section 2, step 4) and get their own tests then.
+ * (MCP 2025-11-25, Streamable HTTP). Room-logic tools/resources have their
+ * own tests under test/room/.
  */
-
-const SESSION_HEADER = "mcp-session-id";
-
-function initializeRequest(id: number | string = 1) {
-  return {
-    jsonrpc: "2.0" as const,
-    id,
-    method: "initialize",
-    params: {
-      protocolVersion: "2025-11-25",
-      capabilities: {},
-      clientInfo: { name: "test-client", version: "0.0.1" },
-    },
-  };
-}
-
-async function initializeSession(app: ReturnType<typeof createApp>) {
-  const res = await request(app)
-    .post("/mcp")
-    .set("Accept", "application/json, text/event-stream")
-    .send(initializeRequest());
-  const sessionId = res.headers[SESSION_HEADER] as string | undefined;
-  return { res, sessionId };
-}
 
 describe("POST /mcp - session lifecycle", () => {
   it("creates a session on a valid initialize request and returns Mcp-Session-Id", async () => {
