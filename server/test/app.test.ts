@@ -139,3 +139,41 @@ describe("Origin validation (RESEARCH.md B6, Security Warning)", () => {
     expect(res.status).toBe(403);
   });
 });
+
+describe("CORS (createMcpExpressApp only wires cors() on its internal OAuth metadata router, not /mcp - see app.ts)", () => {
+  it("sets Access-Control-Allow-Origin and exposes Mcp-Session-Id for an allowed browser Origin", async () => {
+    const app = createApp({ allowedOrigins: ["allowed.example"], enableJsonResponse: true });
+    const res = await request(app)
+      .post("/mcp")
+      .set("Accept", "application/json, text/event-stream")
+      .set("Origin", "https://allowed.example")
+      .send(initializeRequest());
+
+    expect(res.status).toBe(200);
+    expect(res.headers["access-control-allow-origin"]).toBe("https://allowed.example");
+    expect(res.headers["access-control-expose-headers"]).toContain("Mcp-Session-Id");
+  });
+
+  it("does not set Access-Control-Allow-Origin for a disallowed Origin", async () => {
+    const app = createApp({ allowedOrigins: ["allowed.example"], enableJsonResponse: true });
+    const res = await request(app)
+      .post("/mcp")
+      .set("Accept", "application/json, text/event-stream")
+      .set("Origin", "https://evil.example")
+      .send(initializeRequest());
+
+    expect(res.headers["access-control-allow-origin"]).toBeUndefined();
+  });
+
+  it("answers an OPTIONS preflight with 204 and the CORS headers, for an allowed origin", async () => {
+    const app = createApp({ allowedOrigins: ["allowed.example"] });
+    const res = await request(app)
+      .options("/mcp")
+      .set("Origin", "https://allowed.example")
+      .set("Access-Control-Request-Method", "POST");
+
+    expect(res.status).toBe(204);
+    expect(res.headers["access-control-allow-origin"]).toBe("https://allowed.example");
+    expect(res.headers["access-control-allow-methods"]).toContain("POST");
+  });
+});

@@ -506,3 +506,57 @@ project's actual English name ("The Last Shift", per plan-pracy section 1
 and the `last-shift-mcp` repo name). Caught and fixed before step 2 built
 more UI on top of it - cheapest point to fix, same logic as the SDK v1/v2
 migration timing decision.
+
+## 2026-09-17 — step 2 was actually broken for real browsers: missing CORS, not Origin validation
+
+The owner's report ("curl looks fine, must be CORS or a wrong URL - check
+the browser, don't guess") was right, and the fix confirms it was CORS,
+not the Origin allow-list value from earlier today. **Origin validation
+and CORS are two different things that look like the same feature:**
+`createMcpExpressApp({ allowedOrigins })` correctly *rejects* disallowed
+origins (confirmed working since the earlier `MCP_ALLOWED_ORIGINS=localhost`
+fix), but never *sends* `Access-Control-Allow-Origin` (or any
+`Access-Control-*` header) on the `/mcp` routes - so a real browser's own
+CORS enforcement blocks the response client-side even for an allowed
+origin, while `curl` (which doesn't enforce CORS at all) sees a perfectly
+fine `200` and never reveals the problem. This is exactly why the owner's
+instruction to check the browser Network tab/console instead of trusting
+another curl call mattered - a second curl round would have "confirmed"
+nothing was wrong.
+
+**Root cause confirmed by reading source, not guessed:**
+`node_modules/@modelcontextprotocol/express/dist/index.cjs` does import
+and use the `cors` npm package (`router.use((0, cors.default)())`) - but
+only inside `metadataHandler()`, which builds the router for the OAuth
+*metadata discovery* endpoints (`.well-known/oauth-*`), not the `/mcp`
+transport routes this project hand-wires in `app.ts`. The package ships
+CORS for one specific sub-feature and silently has none for the routes
+almost every consumer actually needs it on.
+
+**Fix:** `corsForMcp()` in `server/src/app.ts` - small hand-written
+middleware, mounted via `app.use()` right after `createMcpExpressApp()`,
+reusing the *same* `allowedOrigins` hostname list already passed for
+Origin validation (one allow-list, not two that can drift). Sets
+`Access-Control-Allow-Origin` (reflected, not `*`), `-Methods`, `-Headers`
+(`Content-Type, Accept, Mcp-Session-Id, Mcp-Protocol-Version`), and
+critically `Access-Control-Expose-Headers: Mcp-Session-Id,
+Mcp-Protocol-Version` - without exposing it, the browser's own JS can
+receive a 200 but still be unable to *read* the `Mcp-Session-Id` response
+header the client SDK needs for every subsequent request. Handles
+`OPTIONS` preflight with a `204` short-circuit before it reaches the
+`/mcp` route handlers.
+
+Confirmed live end-to-end, not just by reading code: restarted the server,
+re-ran the exact `OPTIONS` preflight and `POST` initialize with
+`Origin: http://localhost:5173` by hand - both now carry the full
+`Access-Control-*` header set. 3 new tests
+(`test/app.test.ts`, "CORS" describe block) cover the allowed-origin case,
+the disallowed-origin case (header absent), and the preflight response;
+73/73 total, `tsc --noEmit` clean.
+
+**Candidate for FRICTION-LOG.md at the Phase 2 review** (not filed now,
+per plan-pracy section 7's "don't manufacture contributions early"): a
+real, reproducible gap in `@modelcontextprotocol/express` distinct from
+the two already-logged `allowedOrigins` findings - this one is "the
+package's only CORS support lives on an unrelated sub-router; the
+documented main-path routes get none."

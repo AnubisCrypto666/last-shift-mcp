@@ -2,8 +2,48 @@ import { randomUUID } from "node:crypto";
 import { createMcpExpressApp } from "@modelcontextprotocol/express";
 import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
 import { isInitializeRequest } from "@modelcontextprotocol/server";
-import type { Express } from "express";
+import type { Express, NextFunction, Request, Response } from "express";
 import { createMcpServer, type McpServerOptions } from "./mcpServer.js";
+
+/**
+ * `createMcpExpressApp()`'s Origin *validation* (reject requests from
+ * disallowed origins) is not the same thing as CORS (let the *browser* read
+ * a same-allowed-origin response). The package does ship `cors()`, but only
+ * on its internal OAuth metadata router (`src/auth/metadataRouter.ts`) - not
+ * on the `/mcp` routes we hand-wire below. Confirmed by reading
+ * `node_modules/@modelcontextprotocol/express/dist/index.cjs` directly: zero
+ * `Access-Control-*` headers ever appear on a real `/mcp` response, curl
+ * doesn't enforce CORS so this was invisible there, and a real browser
+ * client (client/) failed silently until this was added. Reuses the same
+ * `allowedOrigins` hostname list passed to `createMcpExpressApp()` so there
+ * is one allow-list, not two that can drift.
+ */
+function corsForMcp(allowedOrigins: readonly string[]) {
+  const allowed = new Set(allowedOrigins);
+  return (req: Request, res: Response, next: NextFunction) => {
+    const origin = req.headers.origin;
+    if (origin) {
+      let hostname: string | undefined;
+      try {
+        hostname = new URL(origin).hostname;
+      } catch {
+        hostname = undefined;
+      }
+      if (hostname && allowed.has(hostname)) {
+        res.setHeader("Access-Control-Allow-Origin", origin);
+        res.setHeader("Vary", "Origin");
+        res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+        res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept, Mcp-Session-Id, Mcp-Protocol-Version");
+        res.setHeader("Access-Control-Expose-Headers", "Mcp-Session-Id, Mcp-Protocol-Version");
+      }
+    }
+    if (req.method === "OPTIONS") {
+      res.status(204).end();
+      return;
+    }
+    next();
+  };
+}
 
 export interface AppOptions {
   /** Room-engine dependency overrides (narration, demo mode) - test-only in practice. */
@@ -44,6 +84,7 @@ export function createApp(options: AppOptions = {}): Express {
   const { allowedOrigins = [], enableJsonResponse = false, roomDeps } = options;
 
   const app = createMcpExpressApp({ allowedOrigins: [...allowedOrigins] });
+  app.use(corsForMcp(allowedOrigins));
 
   // One transport per active session; each transport is bound to its own
   // McpServer instance created at initialization time.
