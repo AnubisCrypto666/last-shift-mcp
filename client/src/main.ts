@@ -11,7 +11,7 @@ function appendLine(text: string): void {
 
 // Step 1 scaffold only: no MCP wiring yet (that's step 2). This just proves
 // the Vite shell and DOM wiring work before any protocol code touches it.
-appendLine("Ostatnia Szychta - client shell loaded. Not connected to the server yet.");
+appendLine("The Last Shift - client shell loaded. Not connected to the server yet.");
 
 chatForm.addEventListener("submit", (event) => {
   event.preventDefault();

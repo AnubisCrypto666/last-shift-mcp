@@ -497,3 +497,12 @@ for every corner of classic `tsc` behavior yet. Not filed as an OSS
 candidate (FRICTION-LOG.md targets MCP-specific repos per plan-pracy
 section 7, not TypeScript itself) - logged here per the "record friction
 the moment it's hit" rule, in case it resurfaces.
+
+## 2026-09-17 — Branding typo caught before it spread: "The Last Shift", not the Polish working codename
+
+Step 1's scaffold had "Ostatnia Szychta" in `index.html`'s `<title>`/`<h1>`
+and one `main.ts` log line - the Polish working codename, not the
+project's actual English name ("The Last Shift", per plan-pracy section 1
+and the `last-shift-mcp` repo name). Caught and fixed before step 2 built
+more UI on top of it - cheapest point to fix, same logic as the SDK v1/v2
+migration timing decision.
