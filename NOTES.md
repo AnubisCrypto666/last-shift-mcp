@@ -286,3 +286,39 @@ actually *rendered* as a preview panel in the Inspector UI, versus shown
 as a raw HTML string in a text box. The CLI can only confirm the bytes are
 correct HTML with the right MIME type - rendering is a GUI-only question.
 
+## 2026-09-17 — `_meta.ui.resourceUri` confirmed against Amazon's own spec
+
+Amazon's Alexa+ MCP add-on docs
+(`developer.amazon.com/docs/alexaplus/add-ons/mcp-toolkit-client-lifecycle.html`,
+page footer dated 2026-07-10) document the exact nested shape for a tool
+response's UI hook, verbatim from their sample payload:
+
+```json
+"_meta": { "ui": { "resourceUri": "ui://hotel-search", "invoking": "...", "invoked": "..." } }
+```
+
+with the accompanying sentence: *"Alexa+ renders your custom visuals for
+your MCP App UI as long as you have `resourceUri` defined in the tool
+response. If there's no UI customization detected through `resourceUri`
+definitions, Alexa+ uses the data-only flow."* No legacy/alternate key is
+mentioned anywhere on that page.
+
+Our three tools already use exactly this shape (`_meta: { ui: { resourceUri:
+ROOM_MAP_URI } }`, confirmed on the wire via `tools/list` and covered by
+`test/room/uiRoomMapResource.test.ts`) - no code change needed. Cross-checked
+against the *other* possible source of a "legacy key", `@modelcontextprotocol/ext-apps`'s
+own `registerAppTool` doc comments (`node_modules/@modelcontextprotocol/ext-apps/dist/src/server/index.d.ts`,
+lines ~74-91): that package does define a deprecated back-compat key,
+`_meta["ui/resourceUri"]` (a single flattened key with a literal slash),
+converted automatically by `registerAppTool()` for older hosts - but this is
+an `ext-apps` package convention, not something Amazon's docs mention or
+require. We don't use `registerAppTool()` for these three tools (plain
+`registerTool` with `_meta` set directly, per the Step 4.6 note above), so
+this legacy key never enters our code either way. Two independent sources
+(Amazon's docs, ext-apps's own back-compat comment) agree
+`_meta.ui.resourceUri` is the modern, preferred, non-deprecated shape.
+
+Also confirmed while fetching the same page: the documented Alexa+
+`initialize` request declares `"capabilities": { "roots": { "listChanged":
+true } }` - no `sampling` key. Implication captured under the 2026-09-17
+plan-pracy correction entry below.
