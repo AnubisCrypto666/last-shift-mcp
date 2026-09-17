@@ -12,8 +12,9 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
 
 ## OI-01: Bramka 1 — weryfikacja w MCP Inspectorze
 
-- **Status:** zmierzone (CLI + wizualne potwierdzenie właściciela w GUI),
-  nie zamknięte
+- **Status:** zamknięte przez właściciela, sesja 2026-09-17 (dowód:
+  CLI + wizualne potwierdzenie w GUI + zakładka Apps + wyjaśniony
+  mechanizm `--:--`)
 - **Zakres:** Kryterium Bramki 1 (plan-pracy sekcja 5) mówi dosłownie
   "serwer odpowiada poprawnie w MCP Inspectorze". Dotąd cały rdzeń
   (room://state, examine_room, use_item, attempt_escape, ui://room-map)
