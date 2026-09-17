@@ -461,3 +461,39 @@ engine requirement) - then abandoned before `/login` on owner's decision
 to drop the separate frontend-model plan entirely (see OI-04/OI-07 in
 OPEN-ITEMS.md for the reasoning). Zero work lost - no API key was ever
 entered anywhere, chat included.
+
+## 2026-09-17 — `client/` scaffolded, protocol verified against the live server
+
+Confirmed empirically (`npm view`), not guessed: the client-side v2 MCP
+package is `@modelcontextprotocol/client` (already present as a server
+devDependency for the elicitation tests) - it exports both `Client` and
+`StreamableHTTPClientTransport` from its main entry point. No separate
+HTTP-transport package needed on the client side; `@modelcontextprotocol/node`
+(used server-side) is Node.js *server* middleware only, per its own
+package description.
+
+`client/src/verifyConnection.ts` - a protocol smoke test, not UI code -
+connects with a real `Client` + `StreamableHTTPClientTransport` to the
+live dev server (`http://127.0.0.1:3000/mcp`) and runs `initialize` +
+`tools/list`. Ran live, not just typechecked: returns the real server
+identity and all three tool names.
+
+**Friction found and worked around:** with only `@modelcontextprotocol/client`,
+`typescript`, `tsx`, and `@types/node` installed, `tsc --noEmit` failed
+with `Cannot find name 'process'` (TS2591) despite `@types/node` being
+genuinely present under `node_modules/@types/node` - classic `tsc`
+behavior auto-includes every package under `node_modules/@types` without
+needing an explicit `types` compilerOption, and `server/`'s tsconfig (same
+shape, same `typescript@7.0.2`) relies on exactly that and compiles clean.
+Root cause not fully isolated - the one structural difference is
+`server/` has many more installed packages (several other `@types/*`
+packages alongside `@types/node`) while `client/` has only the one.
+Adding `"types": ["node"]` explicitly to `client/tsconfig.json` fixes it
+immediately (confirmed: exit 0 after the change). Worth watching if it
+recurs - `typescript@7.0.2` ships a native `@typescript/typescript-darwin-arm64`
+platform binary alongside the JS package, consistent with this being the
+new Go-ported compiler still in preview, which may not be a pure drop-in
+for every corner of classic `tsc` behavior yet. Not filed as an OSS
+candidate (FRICTION-LOG.md targets MCP-specific repos per plan-pracy
+section 7, not TypeScript itself) - logged here per the "record friction
+the moment it's hit" rule, in case it resurfaces.
