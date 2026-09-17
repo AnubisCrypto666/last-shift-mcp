@@ -12,8 +12,8 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
 
 ## OI-01: Bramka 1 — weryfikacja w MCP Inspectorze
 
-- **Status:** zmierzone częściowo (CLI kompletne; wizualne potwierdzenie
-  właściciela w GUI oczekujące), nie zamknięte
+- **Status:** zmierzone (CLI + wizualne potwierdzenie właściciela w GUI),
+  nie zamknięte
 - **Zakres:** Kryterium Bramki 1 (plan-pracy sekcja 5) mówi dosłownie
   "serwer odpowiada poprawnie w MCP Inspectorze". Dotąd cały rdzeń
   (room://state, examine_room, use_item, attempt_escape, ui://room-map)
@@ -40,6 +40,39 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
     świadomie nieużyty), a wizualne potwierdzenie renderowania w GUI
     Inspectora (`http://127.0.0.1:6274`) wykonuje sam właściciel i relacjonuje
     wynik. Oczekuje na tę relację, zanim całość przejdzie na pełne "zmierzone".
+  - sesja 2026-09-17 (kontynuacja, część 2) — właściciel potwierdził wizualnie
+    w GUI Inspectora: panel `ui://room-map` renderuje się jako sformatowana
+    treść (tło/kolory/panele pomieszczenia), nie jako surowy string HTML w
+    polu tekstowym; zakładka Apps pokazuje wszystkie 3 narzędzia
+    (`examine_room`, `use_item`, `attempt_escape`) z poprawnym
+    `_meta.ui.resourceUri` wskazującym `ui://room-map`. Zasób odczytany z
+    `mimeType: "text/html;profile=mcp-app"` (zgodnie z wcześniejszym
+    dowodem CLI). To domyka literalne kryterium Bramki 1 dla tej pozycji —
+    **status "zmierzone" w pełni, nie "zamknięte"** (decyzja zamknięcia
+    zostaje przy właścicielu, w rozmowie z konsultantem, zgodnie ze stałą
+    zasadą tego rejestru).
+  - Pytanie poboczne z tej samej relacji: licznik w panelu pokazywał
+    `--:--` zamiast tykającej wartości. Zbadane empirycznie (nie zgadywane)
+    w skompilowanym bundle'u klienta Inspectora
+    (`clients/web/dist/assets/index-DZkZ6KYt.js`): podgląd "HTML preview" w
+    zakładce Resources → Read renderuje dowolny zasób HTML w iframe z
+    atrybutem `sandbox=""` — pusta wartość oznacza *pełną* blokadę (żadnych
+    uprawnień, w tym wykonywania skryptów) jako świadome zabezpieczenie
+    Inspectora dla nieznanej treści HTML, niezależne od naszego kodu.
+    Osobna ścieżka istnieje w tym samym bundle'u dla realnego renderowania
+    MCP Apps (`sendSandboxResourceReady`, z uprawnieniami z
+    `_meta.ui.permissions`/`_meta.ui.domain`, widoczna też jako osobny URL
+    "Sandbox (MCP Apps)" pod `:6275/sandbox`) — to prawdopodobnie ścieżka,
+    która faktycznie wykonuje JS i tyka zegar, ale nie została osobno
+    sprawdzona (nie mamy dostępu do przeglądarki). **Wniosek: `--:--` w
+    zakładce Resources → Read to oczekiwane, bezpieczne zachowanie tego
+    konkretnego podglądu Inspectora, nie błąd w `uiRoomMap.ts`** — nasz
+    HTML ma poprawny, natychmiast wykonywany `<script>` (potwierdzone
+    treścią zwróconą przez CLI), po prostu ten jeden widok Inspectora
+    świadomie go nie uruchamia. Nie wymaga zmiany kodu; warte odnotowania w
+    README/demo jako "w tym konkretnym trybie podglądu zegar bywa
+    statyczny, to ograniczenie narzędzia testowego, nie serwera" jeśli
+    demo kiedykolwiek pokazuje surowy Inspector.
 
 ---
 
