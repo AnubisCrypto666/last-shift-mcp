@@ -183,3 +183,30 @@ tests pass (10 carried over conceptually + 1 new), and a live `npm run dev`
 `originValidation.ts` file at all), and the FRICTION-LOG.md v1 Origin gap
 entry stands even more clearly confirmed by contrast with how v2 solved the
 same problem.
+
+## 2026-09-17 — Step 4.2/4.3: examine_room + recorded demo mode
+
+`ctx.mcpReq.requestSampling()` and `ctx.mcpReq.elicitInput()` (v2's
+convenience methods, found while reading `BaseContext`/`ServerContext` in
+`createMcpHandler-*.d.mts`) are marked `@deprecated` - but the deprecation
+is about the *2026-07-28* era's different multi-round-trip model
+(`inputRequired(...)` results replace the 2025 push-style server→client
+request). Both explicitly "remain functional... only works on the legacy
+path" for 2025-11-25-era connections, which is our target. Using them
+deliberately, not by accident - worth remembering if a future SDK bump ever
+makes the deprecation warning louder than a comment.
+
+Confirmed live, not just under test: with `DEMO_MODE` unset and no AWS
+credentials configured locally, `examine_room` tries Bedrock, the call
+fails (no credentials), and the tool still returns `200` with the plain
+base description - the three-tier fallback (sampling → Bedrock → base
+text) degrades gracefully end-to-end, not just when a mock is injected in
+tests. This is the literal Gate 1 requirement from plan-pracy section 5
+("fallback Bedrock zwraca realny tekst gdy sampling nie jest zadeklarowany")
+holding up against a real (uncredentialed) AWS call, ten days before the
+gate date.
+
+`result.content` on a sampling `CreateMessageResult` turned out to be a
+union of a single content block *or* an array of them (tsc caught this
+immediately - not documented anywhere obvious, just how the type resolved)
+- handled by normalizing to the first element either way.

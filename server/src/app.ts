@@ -3,9 +3,11 @@ import { createMcpExpressApp } from "@modelcontextprotocol/express";
 import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
 import { isInitializeRequest } from "@modelcontextprotocol/server";
 import type { Express } from "express";
-import { createMcpServer } from "./mcpServer.js";
+import { createMcpServer, type McpServerOptions } from "./mcpServer.js";
 
 export interface AppOptions {
+  /** Room-engine dependency overrides (narration, demo mode) - test-only in practice. */
+  roomDeps?: McpServerOptions["roomDeps"];
   /**
    * Origin HOSTNAMES to accept (e.g. "allowed.example" - no scheme/port),
    * matched against the `Origin` header's parsed hostname. Requests with no
@@ -39,7 +41,7 @@ export interface AppOptions {
  * over HTTP via supertest without a live port.
  */
 export function createApp(options: AppOptions = {}): Express {
-  const { allowedOrigins = [], enableJsonResponse = false } = options;
+  const { allowedOrigins = [], enableJsonResponse = false, roomDeps } = options;
 
   const app = createMcpExpressApp({ allowedOrigins: [...allowedOrigins] });
 
@@ -85,7 +87,7 @@ export function createApp(options: AppOptions = {}): Express {
           }
         };
 
-        const server = createMcpServer();
+        const server = createMcpServer({ roomDeps });
         await server.connect(transport);
         await transport.handleRequest(req, res, req.body);
         return;
