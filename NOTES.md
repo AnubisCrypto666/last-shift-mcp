@@ -560,3 +560,35 @@ real, reproducible gap in `@modelcontextprotocol/express` distinct from
 the two already-logged `allowedOrigins` findings - this one is "the
 package's only CORS support lives on an unrelated sub-router; the
 documented main-path routes get none."
+
+## 2026-09-17 — step 3: `ext-apps` does ship a host helper, and a real gap it exposes
+
+`AppBridge` + `PostMessageTransport` (`@modelcontextprotocol/ext-apps/app-bridge`)
+used as documented: iframe with `sandbox="allow-scripts"` (no
+`allow-same-origin` - gets a unique opaque origin per the MCP Design
+Guide's "treat it as an isolated, opaque-origin document"), transport
+built from `iframe.contentWindow`, `bridge.connect(transport)`, then
+`iframe.srcdoc = html` set *after* the bridge is listening so no early
+message is missed. `getToolUiResourceUri()` (also from `app-bridge`) used
+to discover the resource URI from `tools/list` output rather than
+hardcoding `"ui://room-map"` client-side - one less place for the URI to
+drift if it ever changes server-side.
+
+One TS fix needed: `client.readResource()`'s `contents[0]` is a union of
+text/blob resource content - narrowed with `"text" in content` rather
+than assuming `.text` exists.
+
+**Real, not cosmetic, protocol gap exposed by actually wiring this:**
+`server/src/room/uiRoomMap.ts`'s rendered HTML only runs its own local
+countdown script - it never implements the MCP Apps *view* side of the
+protocol (no `ui/notifications/initialized`, no listening for host
+requests/hostContext). So `bridge.oninitialized` will never fire against
+today's resource, no matter how correctly the host side is wired. This
+doesn't block step 3's own goal (sandboxed iframe rendering the resource
+with its ticking clock, confirmed independently since the clock is
+self-contained JS) - but it does mean the *bidirectional* half of "host
+MCP Apps" (hostContext delivery, `host-context-changed`, tool-result
+push, teardown) is inert until the server-side resource is extended to
+speak back. Flagged to the owner as a real scope decision for a later
+step, not silently added to or left out of Component 1's already-closed
+scope.
