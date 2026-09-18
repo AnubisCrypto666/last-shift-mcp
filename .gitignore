@@ -6,3 +6,4 @@ dist/
 build/
 *.log
 audit-input/  # scratch for external audit
+.scratch/  # scratch for audit-collection work (wire captures, temp files)
