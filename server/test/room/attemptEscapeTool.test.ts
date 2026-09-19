@@ -108,6 +108,20 @@ describe("attempt_escape tool (end-to-end via InMemoryTransport)", () => {
     expect(view.wrongAttempts).toBe(0);
   });
 
+  it("cancelling the elicitation leaves the room untouched (audit N1)", async () => {
+    const client = await connectedClient(async () => ({ action: "cancel" }));
+
+    await discoverBothFragments(client);
+    const before = await readRoomState(client);
+    const result = await client.callTool({ name: "attempt_escape", arguments: {} });
+    const after = await readRoomState(client);
+
+    expect((result.content as any[])[0].text).toMatch(/hesitate/i);
+    expect(after.status).toBe("active");
+    expect(after.wrongAttempts).toBe(0);
+    expect(after.remainingSeconds).toBe(before.remainingSeconds);
+  });
+
   it("attempting escape a second time after already escaping just says so, doesn't re-trigger elicitation", async () => {
     const elicitHandler = vi.fn().mockResolvedValue({ action: "accept", content: { code: "7XQ2" } });
     const client = await connectedClient(elicitHandler);
