@@ -154,6 +154,37 @@ describe("Origin validation (RESEARCH.md B6, Security Warning)", () => {
   });
 });
 
+describe("Host header validation (DNS rebinding, SDK default)", () => {
+  // createMcpExpressApp() defaults to host '127.0.0.1' (src/app.ts never
+  // overrides it), which auto-enables Host-header/DNS-rebinding validation.
+  // Regression guard: if someone ever passes host: "0.0.0.0" to
+  // createMcpExpressApp without allowedHosts, this test starts failing
+  // (audit N3).
+
+  it("rejects a request with a disallowed Host header (403)", async () => {
+    const app = createApp({ enableJsonResponse: true });
+    const res = await request(app)
+      .post("/mcp")
+      .set("Accept", "application/json, text/event-stream")
+      .set("Host", "evil-rebind.example")
+      .send(initializeRequest());
+
+    expect(res.status).toBe(403);
+    expect(res.body.error.message).toContain("Invalid Host");
+  });
+
+  it("accepts a request with the localhost Host header", async () => {
+    const app = createApp({ enableJsonResponse: true });
+    const res = await request(app)
+      .post("/mcp")
+      .set("Accept", "application/json, text/event-stream")
+      .set("Host", "127.0.0.1")
+      .send(initializeRequest());
+
+    expect(res.status).toBe(200);
+  });
+});
+
 describe("CORS (createMcpExpressApp only wires cors() on its internal OAuth metadata router, not /mcp - see app.ts)", () => {
   it("sets Access-Control-Allow-Origin and exposes Mcp-Session-Id for an allowed browser Origin", async () => {
     const app = createApp({ allowedOrigins: ["allowed.example"], enableJsonResponse: true });
