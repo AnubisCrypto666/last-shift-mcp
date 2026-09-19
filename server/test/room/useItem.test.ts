@@ -32,6 +32,7 @@ describe("applyUseItem", () => {
     expect(state.discoveredFragments.vent).toBe("Q2");
   });
 
+  // Through the registered tool, an item outside the enum never reaches this branch - the MCP server's own schema validation intercepts it first (audit note 6).
   it("rejects an unknown item", () => {
     const state = createInitialRoomState();
     const text = applyUseItem(state, "flashlight", "vent");

@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
+import { Client } from "@modelcontextprotocol/client";
+import { InMemoryTransport } from "@modelcontextprotocol/server";
 import { createApp } from "../../src/app.js";
+import { createMcpServer } from "../../src/mcpServer.js";
 import { initializeSession, rpc } from "../helpers/mcpClient.js";
 import { ROOM_STATE_URI } from "../../src/room/roomResource.js";
 
@@ -63,5 +66,43 @@ describe("use_item tool", () => {
     expect(res.body.result.content[0].text).toMatch(/don't have a multitool/i);
     const view = await readRoomState(app, sessionId!);
     expect(view.ventUnlocked).toBe(false);
+  });
+
+  // N5: the production error path for an invalid tool argument is the MCP
+  // server's own schema validation (isError result), not applyUseItem()'s
+  // "You don't have a X" text - see the unit test "rejects an unknown item"
+  // in useItem.test.ts, which exercises applyUseItem() directly and so
+  // never goes through this schema layer (audit note 6).
+  it("use_item with an item outside its enum is rejected by schema validation, not applyUseItem's own text (audit N5)", async () => {
+    const server = createMcpServer({ roomDeps: fakeRoomDeps() });
+    const [serverTransport, clientTransport] = InMemoryTransport.createLinkedPair();
+    const client = new Client({ name: "test-client", version: "0.0.1" }, { capabilities: {} });
+    await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
+
+    const result = await client.callTool({
+      name: "use_item",
+      arguments: { item: "flashlight", target: "vent" } as any,
+    });
+
+    expect(result.isError).toBe(true);
+    expect((result.content as any[])[0].text).toMatch(/invalid|validation/i);
+
+    const state = await client.readResource({ uri: ROOM_STATE_URI });
+    const view = JSON.parse((state.contents[0] as { text: string }).text);
+    expect(view.ventUnlocked).toBe(false);
+  });
+
+  it("examine_room with a target outside its enum is rejected by schema validation (audit N5)", async () => {
+    const server = createMcpServer({ roomDeps: fakeRoomDeps() });
+    const [serverTransport, clientTransport] = InMemoryTransport.createLinkedPair();
+    const client = new Client({ name: "test-client", version: "0.0.1" }, { capabilities: {} });
+    await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
+
+    const result = await client.callTool({
+      name: "examine_room",
+      arguments: { target: "reactor" } as any,
+    });
+
+    expect(result.isError).toBe(true);
   });
 });
