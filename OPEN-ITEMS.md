@@ -74,6 +74,12 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
     README/demo jako "w tym konkretnym trybie podglądu zegar bywa
     statyczny, to ograniczenie narzędzia testowego, nie serwera" jeśli
     demo kiedykolwiek pokazuje surowy Inspector.
+  - sesja 2026-09-19 — po sesji audytowej dopisano 8 testów regresyjnych
+    (F1, N1–N5 z audytu) w jednym paśmie commitów, każdy zielony osobno.
+    Suite: 81/81 (73 z audytu + 8 nowych). Rozbieżność liczb w historii
+    tej pozycji (70 → 73 → 81) to trzy różne, prawdziwe stany suite w
+    czasie, nie błąd liczenia — każdy odnotowany z przyczyną w momencie
+    wystąpienia.
 
 ---
 
@@ -266,7 +272,7 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
 
 ## OI-08: Druga ścieżka samplingu (dual-path demo beat) — niepotwierdzona
 
-- **Status:** otwarte
+- **Status:** zmierzone częściowo (z „otwarte")
 - **Zakres:** plan-pracy sekcja 2/5: demo ma pokazać **obie** ścieżki
   narracji w `examine_room` — raz z klientem deklarującym `sampling`
   capability (klient sam generuje opis), raz bez (serwer woła Bedrock).
@@ -301,6 +307,17 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
     konsultacji zewnętrznej zweryfikowanej wprost w dokumentacji Amazona:
     sampling nie jest ścieżką Alexy+, jest cechą dla innych hostów MCP.
     plan-pracy sekcja 2/4 zaktualizowana zgodnie z tym ustaleniem.
+  - sesja 2026-09-19 — ścieżka sampling-preferred nad Bedrockiem
+    dowiedziona przez realny protokół: `InMemoryTransport`, klient z
+    `capabilities: { sampling: {} }`, faktyczny round-trip
+    `sampling/createMessage` (patrz
+    `test/room/examineRoomSampling.test.ts`) — nie tylko mock
+    `narrateDescription`. Status podniesiony do "zmierzone częściowo".
+    Zostaje niezmieniona część, dla której ta pozycja i tak nigdy nie
+    miała się domknąć w pełni: beat demo z realnym hostem MCP
+    deklarującym sampling (Claude Desktop / ChatGPT-podobny), bo Alexa+
+    tej capability nie zadeklaruje (ustalone już wcześniej, patrz
+    historia tej pozycji).
 
 ---
 
@@ -318,3 +335,30 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
   - sesja 2026-09-13/17 — zauważone przy pierwszym `git status` (krok A2),
     świadomie zostawione nietknięte przez cały blok; wciąż nieadresowane
     na koniec.
+
+---
+
+## OI-13: SSE priming/resumability (audyt F5) — rozpoznane, niewdrożone
+
+- **Status:** otwarte, do decyzji właściciela
+- **Zakres:** audyt wykazał brak zdarzenia primingowego SSE (SHOULD, nie
+  MUST) — spec transportu, sekcja Resumability. Rozpoznanie w kodzie
+  potwierdza: SDK w pełni wspiera priming/resumability przez opcjonalny
+  `EventStore` przekazywany do transportu, ale nie dostarcza gotowej
+  implementacji (`grep -rln "InMemoryEventStore" node_modules/@modelcontextprotocol/`
+  — zero trafień; SDK eksportuje tylko interfejs). Wdrożenie wymagałoby
+  własnej implementacji `EventStore` (min. `storeEvent`, opcjonalnie
+  `getStreamIdForEventId`/`replayEventsAfter`) — nowy kod, nie one-liner.
+- **Realne decyzje projektowe do podjęcia, gdyby wdrażać:** retencja
+  niedostarczonych zdarzeń per strumień (unbounded = wyciek pamięci przy
+  długich sesjach), zakres retencji (per-sesja czy per-proces).
+- **Kryterium zamknięcia:** decyzja — wdrożyć (wtedy nowe kryterium: test
+  resumability przez `Last-Event-ID`) albo świadomie zostawić poza
+  zakresem z uzasadnieniem w README (kandydat: "SHOULD, nie MUST; adresuje
+  flaky-reconnect, nieistotne dla scenariusza dema na hackathon").
+- **Termin:** nie blokuje Bramki 1 (SHOULD, jawnie odłożone w audycie).
+  Rozstrzygnąć przed Fazą 2, żeby nie wisiało w materiałach zgłoszeniowych.
+- **Historia:**
+  - sesja 2026-09-19 — audyt wykrył brak (F5); rozpoznanie SDK wykonane
+    (patrz NOTES.md, wpis "F5 recon"), wdrożenie wstrzymane do decyzji
+    właściciela.
