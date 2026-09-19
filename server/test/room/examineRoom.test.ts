@@ -118,6 +118,7 @@ describe("narrateDescription", () => {
   });
 
   it("falls back to the plain base description when both sampling and Bedrock fail", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const d = deps({ narrativeGenerator: { generate: vi.fn().mockRejectedValue(new Error("no AWS creds")) } });
     const requestSampling = vi.fn().mockRejectedValue(new Error("client declined"));
     const text = await narrateDescription({
@@ -129,5 +130,7 @@ describe("narrateDescription", () => {
       requestSampling,
     });
     expect(text).toBe("a plain toolbox description");
+    expect(errorSpy).toHaveBeenCalled();
+    errorSpy.mockRestore();
   });
 });

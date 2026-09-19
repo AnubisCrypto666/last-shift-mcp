@@ -61,14 +61,16 @@ export async function narrateDescription(args: NarrateArgs): Promise<string> {
     try {
       const sampled = await requestSampling(prompt);
       if (sampled) return sampled;
-    } catch {
+    } catch (error) {
       // Fall through to Bedrock.
+      console.error(`[narration] sampling failed, falling back to Bedrock: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
   try {
     return await deps.narrativeGenerator.generate(prompt);
-  } catch {
+  } catch (error) {
+    console.error(`[narration] Bedrock failed, falling back to base description: ${error instanceof Error ? error.message : String(error)}`);
     return base;
   }
 }
