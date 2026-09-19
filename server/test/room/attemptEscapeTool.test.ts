@@ -79,6 +79,24 @@ describe("attempt_escape tool (end-to-end via InMemoryTransport)", () => {
     expect(after.remainingSeconds).toBeLessThan(before.remainingSeconds);
   });
 
+  // SDK 2.0.0 validates elicited content against requestedSchema
+  // (validateAcceptedContent ?? true in Server._sendElicitationLeg) and
+  // throws when it doesn't match; our outer catch in attemptEscape.ts maps
+  // that to cancel. If this test starts hitting the reject/buzz path, the
+  // SDK stopped validating - the defensive typeof-check in attemptEscape.ts
+  // is then the only remaining guard.
+  it("a non-string content.code from the client is rejected by the SDK's own schema check, not a crash (audit F1)", async () => {
+    const client = await connectedClient(async () => ({ action: "accept", content: { code: 123 } }));
+
+    await discoverBothFragments(client);
+    const result = await client.callTool({ name: "attempt_escape", arguments: {} });
+    const after = await readRoomState(client);
+
+    expect((result.content as any[])[0].text).toMatch(/hesitate/i);
+    expect(after.status).toBe("active");
+    expect(after.wrongAttempts).toBe(0);
+  });
+
   it("declining the elicitation leaves the room untouched", async () => {
     const client = await connectedClient(async () => ({ action: "decline" }));
 

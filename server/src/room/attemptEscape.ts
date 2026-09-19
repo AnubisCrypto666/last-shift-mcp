@@ -69,10 +69,17 @@ export function registerAttemptEscapeTool(server: McpServer, state: RoomState): 
             required: ["code"],
           },
         });
-        outcome =
-          result.action === "accept"
-            ? { action: "accept", code: (result.content as { code?: string } | undefined)?.code }
-            : { action: result.action };
+        if (result.action === "accept") {
+          const rawCode = (result.content as Record<string, unknown> | undefined)?.code;
+          // The SDK only validates ElicitResult structurally against its own
+          // Record<string, string|number|boolean|string[]> shape, not against
+          // our requestedSchema - a client returning e.g. {code: 123} passes
+          // the SDK's own check. Treat anything but a string as no code
+          // submitted, rather than trusting the cast.
+          outcome = { action: "accept", code: typeof rawCode === "string" ? rawCode : undefined };
+        } else {
+          outcome = { action: result.action };
+        }
       } catch {
         // Client doesn't support elicitation, or the request otherwise
         // failed - treat it the same as the player backing out, not a crash.
