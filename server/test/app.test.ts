@@ -72,6 +72,20 @@ describe("POST /mcp - session lifecycle", () => {
 
     expect(res.status).toBe(400);
   });
+
+  it("accepts a notification (no id) with 202 Accepted and no body (audit N4)", async () => {
+    const app = createApp({ enableJsonResponse: true });
+    const { sessionId } = await initializeSession(app);
+
+    const res = await request(app)
+      .post("/mcp")
+      .set("Accept", "application/json, text/event-stream")
+      .set(SESSION_HEADER, sessionId!)
+      .send({ jsonrpc: "2.0", method: "notifications/initialized" });
+
+    expect(res.status).toBe(202);
+    expect(res.text).toBe("");
+  });
 });
 
 describe("GET /mcp - server-initiated stream", () => {
