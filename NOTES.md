@@ -631,3 +631,58 @@ render.
 `tsc --noEmit` clean, `vite build` bundles cleanly (166 modules). Visual
 click-through in the browser (does the chat log actually read this way on
 screen) is still the owner's check, as with every prior step.
+
+## 2026-09-19 — F5 recon: SSE priming/resumability support in SDK 2.0.0 (no implementation)
+
+Audit finding F5 flags that `server/src/app.ts`'s
+`NodeStreamableHTTPServerTransport` isn't configured for SSE resumability
+(SEP-1699 priming events / `Last-Event-ID` replay). Checked what the
+installed `@modelcontextprotocol/*@2.0.0` actually supports before any
+decision on whether/how to close this - recon only, nothing implemented.
+
+**The SDK fully implements the mechanism, gated behind one option the
+project doesn't set.** `WebStandardStreamableHTTPServerTransportOptions`
+(`node_modules/@modelcontextprotocol/server/dist/index.d.mts:461-498`,
+which `NodeStreamableHTTPServerTransport`'s own
+`StreamableHTTPServerTransportOptions` is a direct alias of, per
+`node_modules/@modelcontextprotocol/node/dist/index.d.mts:70`) takes an
+optional `eventStore?: EventStore`. With it set:
+
+- The transport writes a priming SSE event on stream open
+  (`node_modules/@modelcontextprotocol/server/dist/index.mjs:438-451`,
+  `writePrimingEvent`-equivalent): `id: <eventId>\n[retry: N\n]data: \n\n`,
+  calling `eventStore.storeEvent(streamId, {})` for the id. Gated on the
+  negotiated protocol version supporting empty SSE data (the doc comment
+  at line ~424 says this landed *with* `2025-11-25` - the version this
+  server already negotiates, so no version gap there).
+- Incoming `GET /mcp` requests carrying a `Last-Event-ID` header are
+  detected (`index.mjs:464-467`) and routed to `replayEvents()`
+  (`index.mjs:509+`), which calls `eventStore.replayEventsAfter(lastEventId,
+  {send})` to resume a dropped stream from where the client left off.
+- Without `eventStore` configured (this project's current state - `app.ts`
+  passes only `sessionIdGenerator`, `enableJsonResponse`,
+  `onsessioninitialized`), the priming-event write is a no-op
+  (`if (!this._eventStore) return;`) and a `Last-Event-ID` header is
+  silently ignored (no resumption attempted) - matching what F5 observed
+  live.
+
+**No ready-made `InMemoryEventStore` ships in the SDK.** Searched every
+`@modelcontextprotocol/*` package's `dist/` output
+(`grep -rln "InMemoryEventStore" node_modules/@modelcontextprotocol/`) -
+no match anywhere. The SDK exports the `EventStore` *interface* only
+(`storeEvent`, optional `getStreamIdForEventId`, `replayEventsAfter`) -
+implementing it (even a minimal in-memory, per-session ring buffer) would
+be new code this project would own and maintain, not a one-line opt-in.
+
+**Rough size of the change, if it's taken on:** small in surface area (one
+new file implementing three methods of `EventStore`, one line in
+`app.ts` to pass `eventStore` into each session's transport
+construction) but real in design decisions the owner would need to make
+that aren't obvious from the interface alone: how long to retain
+undelivered events per stream before dropping them (unbounded retention
+is a memory leak for long-lived sessions), whether retention is
+per-session or per-process, and whether this is worth doing at all given
+the project's stated Gate scope (F5 is SHOULD, not MUST, per the audit -
+resumability matters for flaky-network reconnects, which isn't this
+hackathon's demo scenario). Decision on whether to implement is the
+owner's - not made here.
