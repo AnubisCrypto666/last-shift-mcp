@@ -6,9 +6,8 @@ z zamknięcia. Gracz zamknięty w Maintenance Bay 7 na stacji Kessler
 Station, z zegarem odliczającym 600 sekund, musi zbadać pomieszczenie,
 znaleźć dwa fragmenty kodu i uciec, zanim czas się skończy.
 
-Projekt zgłoszeniowy na **[TODO: nazwa/edycja hackathonu — nie podana w
-`plan-pracy-ostatnia-szychta.md`]** — ścieżka Alexa+ (główna), plus
-mini-wyzwania AWS Builder i Open Source.
+Projekt zgłoszeniowy na **Build, Ship, Shape: Amazon Developer Hackathon**
+— ścieżka Alexa+ (główna), plus mini-wyzwania AWS Builder i Open Source.
 
 Serwer wystawia trzy narzędzia (`examine_room`, `use_item`,
 `attempt_escape`) i dwa zasoby (`room://state` — strukturalny stan gry w
@@ -49,4 +48,4 @@ udokumentowane z uzasadnieniem w OPEN-ITEMS.md.
 ## Status projektu
 
 Odesłanie: bieżący stan otwartych spraw w OPEN-ITEMS.md, historia sesji
-w PROTOKOL-SESJI.md.
+w raport-sesji/.
