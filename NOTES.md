@@ -686,3 +686,33 @@ the project's stated Gate scope (F5 is SHOULD, not MUST, per the audit -
 resumability matters for flaky-network reconnects, which isn't this
 hackathon's demo scenario). Decision on whether to implement is the
 owner's - not made here.
+
+## 2026-09-22 — druga odmowa wniosku o kredyty AWS
+
+Pierwsza odmowa (patrz OI-03): niezgodny e-mail — formularz kredytowy vs.
+konto Devpost. Wniosek ponowiony 15.09.2026.
+
+Druga odmowa dotarła (mail od zespołu AWS/Devpost hackathon). Prawdopodobny
+powód, tym razem: właściciel loguje się do Devpost przez GitHub, a adres
+e-mail powiązany z kontem GitHub różni się od maila użytego w formularzu
+kredytowym — dwa różne adresy, ten sam człowiek, formularz/proces
+weryfikacji tego nie łączy.
+
+Decyzja właściciela: ponowić wniosek trzeci raz, tym razem z adresem
+e-mail przypisanym do konta GitHub, którym loguje się na Devpost.
+
+Przy tej okazji przygotowany nowy opis projektu do pola formularza "In 2-3
+sentences, tell us what you'll build" (formularz wymaga nazwania tracku
+wprost i ostrzega przed zbyt krótkimi/generycznymi/AI-brzmiącymi
+odpowiedziami):
+
+> I'm building a self-hosted MCP server (Streamable HTTP, spec
+> 2025-11-25) for the Alexa+ track — an escape-room game called The Last
+> Shift, where a locked room, an inventory, and a countdown timer are
+> exposed as MCP tools and resources. It uses MCP elicitation to ask the
+> player for an escape code mid-session, and an MCP Apps `ui://` resource
+> to render a live room map with a ticking clock inside a sandboxed
+> iframe on the client. Since Alexa+ doesn't declare the `sampling`
+> capability, room narration falls back to a direct Amazon Bedrock call —
+> so Bedrock is the actual narration path for this track, not just a
+> bonus integration.

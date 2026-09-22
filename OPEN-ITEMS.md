@@ -121,6 +121,11 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
 - **Historia:**
   - sesja 2026-09-13/17 — pierwszy wniosek odrzucony (niezgodny mail),
     ponowiony 15.09, brak odpowiedzi na 17.09.
+  - sesja 2026-09-22 — druga odmowa, tym razem z powodu niezgodności
+    maila powiązanego z kontem GitHub (którym właściciel loguje się do
+    Devpost) względem maila użytego w formularzu kredytowym. Trzeci
+    wniosek zaplanowany z poprawionym adresem e-mail (patrz NOTES.md,
+    wpis pod tą datą).
 
 ---
 
