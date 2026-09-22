@@ -338,6 +338,20 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
 
 ---
 
+## OI-12: Auth (SHOULD transportu) i stan gry powiązany z tożsamością użytkownika — zakres udokumentowany
+
+- **Status:** zmierzone — wybrana ścieżka (b): odstępstwa nazwane wprost,
+  nie zamaskowane jako N/A.
+- **Rozstrzygnięcie:** README/materiał zgłoszeniowy zawiera akapit
+  "Zgodność z protokołem" łączący auth (SHOULD transportu) ze statusem
+  tożsamości użytkownika (MUST elicitation, odczyt: dopuszczalne przy
+  braku auth) jako jedną, spójnie nazwaną decyzję zakresu — nie dwa
+  niezależne przemilczenia.
+- **Historia:**
+  - sesja 2026-09-19 — decyzja podjęta, akapit gotowy w README.
+
+---
+
 ## OI-13: SSE priming/resumability (audyt F5) — rozpoznane, niewdrożone
 
 - **Status:** otwarte, do decyzji właściciela
