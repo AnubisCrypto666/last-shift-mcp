@@ -103,6 +103,12 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
   - sesja 2026-09-13/17 — ścieżka kodu zbudowana i realna (nie zaślepka),
     fallback do opisu bazowego potwierdzony na żywo; sam pozytywny przypadek
     (Bedrock faktycznie odpowiada) niepotwierdzony z braku kredytów.
+  - sesja 2026-09-22 — dostępne 120 USD kredytów darmowego planu (100 USD
+    AWS Free Tier + 20 USD "Explore AWS: Set up a cost budget"), które
+    mogą wystarczyć na test Bedrocka niezależnie od OI-03; do sprawdzenia,
+    czy konto na darmowym planie ma dostęp do modeli Claude w Bedrocku
+    (region konsoli: eu-north-1 Stockholm, zweryfikować dostępność
+    modelu).
 
 ---
 
@@ -126,6 +132,10 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
     Devpost) względem maila użytego w formularzu kredytowym. Trzeci
     wniosek zaplanowany z poprawionym adresem e-mail (patrz NOTES.md,
     wpis pod tą datą).
+  - sesja 2026-09-22 — trzeci wniosek (adres z konta GitHub) też
+    odrzucony; Billing → Credits potwierdza brak kredytów z hackathonu;
+    wysłano odpowiedź na mail odmowy z prośbą o ręczną weryfikację
+    (patrz NOTES.md, wpis pod tą datą).
 
 ---
 

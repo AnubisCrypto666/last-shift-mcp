@@ -716,3 +716,15 @@ odpowiedziami):
 > capability, room narration falls back to a direct Amazon Bedrock call —
 > so Bedrock is the actual narration path for this track, not just a
 > bonus integration.
+
+## 2026-09-22 — trzecia odmowa wniosku o kredyty AWS
+
+Trzeci wniosek (adres e-mail z konta GitHub, którym właściciel loguje się
+na Devpost) też odrzucony.
+
+Sprawdzono Billing → Credits na koncie AWS: brak kredytów z hackathonu.
+Aktywne tylko kredyty darmowego planu — 100 USD AWS Free Tier + 20 USD
+"Explore AWS: Set up a cost budget", ważne do 13.09.2027, zużycie
+dotychczas 0 USD.
+
+Wysłano odpowiedź na mail odmowy z prośbą o ręczną weryfikację.
