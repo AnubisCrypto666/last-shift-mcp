@@ -85,7 +85,9 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
 
 ## OI-02: Fallback Bedrock — weryfikacja z realnym dostępem do modelu
 
-- **Status:** zmierzone częściowo
+- **Status:** zamknięte — pozytywna ścieżka Bedrock zweryfikowana na żywo,
+  patrz NOTES.md, wpis 2026-09-23 ("OI-02: pozytywna ścieżka Bedrock
+  zweryfikowana na żywo (audyt D2)")
 - **Zakres:** Kryterium Bramki 1 mówi "fallback Bedrock zwraca realny tekst
   gdy sampling nie jest zadeklarowany". Potwierdzone na żywo: przy braku
   kredencjali AWS lokalnie wywołanie Bedrocka faktycznie zawodzi, a
@@ -109,6 +111,13 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
     czy konto na darmowym planie ma dostęp do modeli Claude w Bedrocku
     (region konsoli: eu-north-1 Stockholm, zweryfikować dostępność
     modelu).
+  - sesja 2026-09-23 — procedura audytu D2 wykonana na żywo: `examine_room`
+    (bez `DEMO_MODE`, region `eu-north-1`, model
+    `eu.anthropic.claude-haiku-4-5-20251001-v1:0`) zwrócił realny tekst z
+    Bedrocka, różny od opisu bazowego, zero linii `[narration]` na stderr;
+    kontrpróba z celowo błędnym `BEDROCK_MODEL_ID` zwróciła opis bazowy i
+    poprawną linię `[narration] Bedrock failed...` na stderr. Kryterium
+    zamknięcia spełnione — status zmieniony na "zamknięte".
 
 ---
 

@@ -728,3 +728,36 @@ Aktywne tylko kredyty darmowego planu — 100 USD AWS Free Tier + 20 USD
 dotychczas 0 USD.
 
 Wysłano odpowiedź na mail odmowy z prośbą o ręczną weryfikację.
+
+## 2026-09-23 — OI-02: pozytywna ścieżka Bedrock zweryfikowana na żywo (audyt D2)
+
+Poświadczenia AWS skonfigurowane lokalnie przez `aws configure` (nie
+odczytane, nie wypisane, nie zapisane nigdzie w repo). Region:
+`eu-north-1`. Model: `eu.anthropic.claude-haiku-4-5-20251001-v1:0`.
+
+**Krok pozytywny** — serwer uruchomiony bez `DEMO_MODE`, z poprawnym
+`BEDROCK_MODEL_ID`; `examine_room` z `{"target": "toolbox"}`. Wynik:
+HTTP 200, tekst realnie wygenerowany przez Bedrock (nie opis bazowy),
+zero linii `[narration]` na stderr serwera. Pierwsze ~200 znaków
+odpowiedzi:
+
+> Your fingers find a dented toolbox wedged tight beneath the bench—someone
+> shoved it there in a hurry. Inside, a multitool lies heavy in your palm,
+> still warm from the last shift, still radiating the h[...]
+
+**Kontrpróba** — restart z celowo błędnym `BEDROCK_MODEL_ID=invalid-model-id`,
+to samo wywołanie. Wynik: tekst dokładnie równy opisowi bazowemu z
+`descriptions.ts` ("A dented toolbox wedged under the bench. Inside: a
+multitool, still warm from the last shift."), na stderr:
+
+```
+[narration] Bedrock failed, falling back to base description: The provided model identifier is invalid.
+```
+
+**Wniosek: OI-02 pozytywnie zweryfikowane end-to-end** — realny, pozytywny
+zwrot tekstu z Bedrocka potwierdzony (nie tylko ścieżka degradacji, którą
+mieliśmy potwierdzoną już wcześniej bez kredytów), a kontrpróba potwierdza,
+że fallback i log obserwowalności (dodane po audycie, finding 5) działają
+poprawnie po obu stronach — sukces i porażka rozróżnialne zarówno w
+odpowiedzi, jak i w logu serwera. Status OI-02 zmieniony na "zamknięte"
+(patrz OPEN-ITEMS.md).
