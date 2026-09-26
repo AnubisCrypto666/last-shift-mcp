@@ -25,6 +25,30 @@ w swoim `initialize` nie deklaruje `sampling`.
 elicitation i sampling end-to-end przez InMemoryTransport, ścieżki błędów
 schematu narzędzi.
 
+## Uruchomienie lokalne (serwer + klient przeglądarkowy)
+
+`server/src/index.ts` nie ładuje automatycznie pliku `.env` (brak
+`dotenv`/`--env-file`) — zmienne środowiskowe trzeba przekazać realnie do
+powłoki uruchamiającej `npm run dev`, samo skopiowanie `.env.example` do
+`.env` nic nie zmieni.
+
+Domyślnie, bez `MCP_ALLOWED_ORIGINS`, serwer akceptuje tylko żądania bez
+nagłówka `Origin` (np. `curl`) — każdy request z przeglądarki (która
+zawsze wysyła `Origin`) zostaje odrzucony `403 Invalid Origin`, a
+przeglądarka pokazuje to w konsoli jako błąd CORS ("blocked by CORS
+policy... No 'Access-Control-Allow-Origin' header"), nie jako 403 wprost —
+łatwo pomylić z błędem w kodzie, kiedy to tylko brakująca zmienna.
+
+Do gry przez `client/` (Vite, domyślnie `http://localhost:5173`) serwer
+trzeba uruchomić z jawnie ustawionym `MCP_ALLOWED_ORIGINS`:
+
+```
+cd server
+MCP_ALLOWED_ORIGINS=localhost npm run dev
+```
+
+Pełna lista zmiennych: `.env.example` w korzeniu repo.
+
 ## Zgodność z protokołem
 
 **Zgodność z protokołem.** Serwer spełnia wszystkie wymogi MUST
