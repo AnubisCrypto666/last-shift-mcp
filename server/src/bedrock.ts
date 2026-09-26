@@ -7,12 +7,12 @@ export interface NarrativeGenerator {
 
 export interface BedrockNarrativeGeneratorOptions {
   /**
-   * Bedrock model id. Defaults to BEDROCK_MODEL_ID env var, or a Claude
-   * Haiku on-demand id as a placeholder - confirm the final choice once AWS
-   * credits are active and model access is verified (plan-pracy section 8,
-   * open decision).
+   * Bedrock model id. Defaults to the BEDROCK_MODEL_ID env var, or the
+   * cross-region Claude Haiku inference profile verified live against
+   * Bedrock during OI-02's audit D2 procedure (NOTES.md, 2026-09-23).
    */
   modelId?: string;
+  /** Defaults to the AWS_REGION env var, or the region verified alongside modelId above. */
   region?: string;
   client?: BedrockRuntimeClient;
 }
@@ -31,8 +31,8 @@ export interface BedrockNarrativeGeneratorOptions {
 export function createBedrockNarrativeGenerator(
   options: BedrockNarrativeGeneratorOptions = {},
 ): NarrativeGenerator {
-  const modelId = options.modelId ?? process.env.BEDROCK_MODEL_ID ?? "anthropic.claude-3-5-haiku-20241022-v1:0";
-  const client = options.client ?? new BedrockRuntimeClient({ region: options.region ?? process.env.AWS_REGION });
+  const modelId = options.modelId ?? process.env.BEDROCK_MODEL_ID ?? "eu.anthropic.claude-haiku-4-5-20251001-v1:0";
+  const client = options.client ?? new BedrockRuntimeClient({ region: options.region ?? process.env.AWS_REGION ?? "eu-north-1" });
 
   return {
     async generate(prompt: string): Promise<string> {
