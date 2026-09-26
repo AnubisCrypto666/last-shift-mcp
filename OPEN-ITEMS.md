@@ -10,6 +10,17 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
 
 ---
 
+## Kamienie milowe
+
+- **2026-09-23 — Bramka 1 spełniona.** Wszystkie trzy kryteria z
+  plan-pracy-ostatnia-szychta.md sekcja 5 zamknięte: weryfikacja w MCP
+  Inspectorze (OI-01), elicitation zweryfikowane end-to-end (audyt
+  zgodności, ustalenia F1/N1), fallback Bedrock zwraca realny tekst z
+  modelu gdy sampling nie jest zadeklarowany (OI-02, zamknięte
+  2026-09-23).
+
+---
+
 ## OI-01: Bramka 1 — weryfikacja w MCP Inspectorze
 
 - **Status:** zamknięte przez właściciela, sesja 2026-09-17 (dowód:
