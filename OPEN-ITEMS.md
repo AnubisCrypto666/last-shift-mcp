@@ -18,6 +18,15 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
   zgodności, ustalenia F1/N1), fallback Bedrock zwraca realny tekst z
   modelu gdy sampling nie jest zadeklarowany (OI-02, zamknięte
   2026-09-23).
+- **2026-09-26 — Bramka 2 spełniona.** Kryterium z
+  plan-pracy-ostatnia-szychta.md sekcja 5 (pełny przebieg end-to-end
+  klient↔serwer, widoczny na żywo zegar) potwierdzone dwiema
+  niezależnymi metodami 2026-09-17 (skryptowany playthrough + kliknięcie
+  właściciela) i ponownie ręcznym przejściem do ucieczki 2026-09-26 z
+  realnym Bedrockiem. Dwa problemy znalezione podczas tego przejścia
+  (artefakty markdown w narracji; widok `ui://room-map` nie odświeża się
+  po starcie sesji) nie unieważniają literalnego kryterium bramki — patrz
+  OI-04, Historia 2026-09-26.
 
 ---
 
@@ -161,9 +170,12 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
 
 ## OI-04: Klient demo (Komponent 2) — zmierzone częściowo
 
-- **Status:** zmierzone częściowo (Kroki 1-4 z 7 gotowe i zweryfikowane
+- **Status:** zmierzone częściowo (Kroki 1-4 z 6 gotowe i zweryfikowane
   end-to-end; brakuje Kroku 5 fullscreen/expand i Kroku 6 przeglądu
-  Accessibility), nie zamknięte
+  Accessibility), nie zamknięte. Lista skorygowana z 7 do 6 kroków
+  2026-09-26 — Krok 7 z pierwotnej listy nie miał nigdzie zapisanej
+  definicji, a jedyny sourced kandydat (voice-only fallback z MCP Design
+  Guide) był już zrealizowany w Kroku 4 (patrz Historia 2026-09-26).
 - **Zakres:** Cały Komponent 2 specyfikacji (cienka powłoka: klient MCP +
   host MCP Apps + minimalny interfejs czatu/głosu). **Wykonawca zmieniony
   2026-09-17: buduje Claude Code, nie osobny model frontendowy** (patrz
@@ -201,6 +213,25 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
     Krok 5 (przycisk fullscreen/expand) i Krok 6 (przegląd Accessibility
     względem CSS) pozostają niewykonane — sesja zamknięta przed nimi na
     wyraźną decyzję właściciela.
+  - sesja 2026-09-26 — ręczne przejście gry przez właściciela, serwer z
+    `MCP_ALLOWED_ORIGINS=localhost` i realnym Bedrockiem (OI-02): pełna
+    ścieżka do ucieczki działa, potwierdzając kryterium Bramki 2 po raz
+    drugi, niezależną metodą od 17.09. Znalezione dwa problemy: (a)
+    `examine_room` na toolboxie zwrócił narrację zaczynającą się od
+    nagłówka markdown `# Ostatnia Szychta` z Bedrocka — łamie wymóg MCP
+    Design Guide "free of text formatting artifacts" (NOTES.md,
+    2026-09-17); (b) widok `ui://room-map` nie aktualizuje się po
+    starcie — ekwipunek/fragmenty/status zostają w stanie początkowym,
+    zegar odlicza dalej po ucieczce; prawdopodobnie ta sama luka
+    zanotowana 17.09 (host nie re-fetchuje zasobu po zmianie stanu),
+    naprawa wtedy jawnie odłożona do osobnej decyzji właściciela. Przy
+    tej samej okazji skorygowano liczbę kroków Komponentu 2 z 7 do 6 (patrz
+    Status wyżej) — Krok 7 nigdy nie miał zapisanej definicji w żadnym
+    dokumencie projektu (sprawdzono NOTES.md, plan-pracy-ostatnia-szychta.md,
+    FRICTION-LOG.md, PROMPT-START-alexa.md), a jedyny prawdopodobny
+    kandydat z rozmowy o MCP Design Guide — voice-only fallback — został
+    już zrealizowany w Kroku 4 jako narracja tekstowa stanu pokoju
+    niezależna od iframe'u.
 
 ---
 
