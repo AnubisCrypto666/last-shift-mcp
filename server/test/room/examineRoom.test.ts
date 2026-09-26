@@ -133,4 +133,18 @@ describe("narrateDescription", () => {
     expect(errorSpy).toHaveBeenCalled();
     errorSpy.mockRestore();
   });
+
+  it("strips markdown formatting artifacts from Bedrock output (playtest finding 2026-09-26, a)", async () => {
+    const d = deps({ narrativeGenerator: { generate: vi.fn().mockResolvedValue("# Tytuł\n**tekst**") } });
+    const requestSampling = vi.fn();
+    const text = await narrateDescription({
+      target: "toolbox",
+      base: "a toolbox",
+      ventUnlocked: false,
+      deps: d,
+      supportsSampling: false,
+      requestSampling,
+    });
+    expect(text).toBe("tekst");
+  });
 });

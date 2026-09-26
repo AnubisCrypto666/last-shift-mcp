@@ -48,6 +48,37 @@ export function buildNarrationPrompt(target: ExamineTarget | undefined, base: st
     `for a text adventure called "Ostatnia Szychta" (The Last Shift). The player just examined ` +
     `${target ? `the ${target.replace("_", " ")}` : "the room"}. Here is the plain fact of what's there: ` +
     `"${base}" Rewrite it as 1-2 vivid, urgent sentences. Do not invent new objects, items, or clues - ` +
-    `only the fact given. Do not mention game mechanics, tools, or that this is a game.`
+    `only the fact given. Do not mention game mechanics, tools, or that this is a game. Return plain ` +
+    `prose only - no markdown, no headings, no titles, no bold/italic markers, no lists, no tables.`
   );
+}
+
+/**
+ * Strips markdown formatting artifacts (headings, bold/italic markers,
+ * list bullets, inline code, table pipes) from model-generated narration
+ * text. The MCP Design Guide's voice-only fallback requires narration
+ * text to "remain intelligible without any visual support and be free of
+ * text formatting artifacts (such as pipes)" (NOTES.md, 2026-09-17) -
+ * asking the model for plain prose (see buildNarrationPrompt) isn't
+ * reliably obeyed, so this is a defensive pass on the actual output.
+ * Heading lines are dropped entirely (a stray title isn't narration);
+ * inline markers are stripped but their text is kept.
+ */
+export function stripNarrationFormatting(text: string): string {
+  return text
+    .split("\n")
+    .filter((line) => !/^\s{0,3}#{1,6}\s/.test(line))
+    .map((line) =>
+      line
+        .replace(/^\s*(?:[-*+]|\d+\.)\s+/, "")
+        .replace(/```/g, "")
+        .replace(/`([^`]*)`/g, "$1")
+        .replace(/\*\*([^*]+)\*\*/g, "$1")
+        .replace(/__([^_]+)__/g, "$1")
+        .replace(/\*([^*]+)\*/g, "$1")
+        .replace(/_([^_]+)_/g, "$1")
+        .replace(/\|/g, ""),
+    )
+    .join("\n")
+    .trim();
 }

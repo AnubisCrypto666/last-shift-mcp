@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod/v4";
 import { createBedrockNarrativeGenerator, type NarrativeGenerator } from "../bedrock.js";
-import { baseDescription, buildNarrationPrompt, recordedFixture, type ExamineTarget } from "./descriptions.js";
+import { baseDescription, buildNarrationPrompt, recordedFixture, stripNarrationFormatting, type ExamineTarget } from "./descriptions.js";
 import { CONTROL_PANEL_FRAGMENT, MULTITOOL_ITEM, getStatus, type RoomState, type RoomStatus } from "./state.js";
 import { ROOM_MAP_URI } from "./uiRoomMap.js";
 
@@ -60,7 +60,7 @@ export async function narrateDescription(args: NarrateArgs): Promise<string> {
   if (supportsSampling) {
     try {
       const sampled = await requestSampling(prompt);
-      if (sampled) return sampled;
+      if (sampled) return stripNarrationFormatting(sampled);
     } catch (error) {
       // Fall through to Bedrock.
       console.error(`[narration] sampling failed, falling back to Bedrock: ${error instanceof Error ? error.message : String(error)}`);
@@ -68,7 +68,8 @@ export async function narrateDescription(args: NarrateArgs): Promise<string> {
   }
 
   try {
-    return await deps.narrativeGenerator.generate(prompt);
+    const generated = await deps.narrativeGenerator.generate(prompt);
+    return stripNarrationFormatting(generated);
   } catch (error) {
     console.error(`[narration] Bedrock failed, falling back to base description: ${error instanceof Error ? error.message : String(error)}`);
     return base;
