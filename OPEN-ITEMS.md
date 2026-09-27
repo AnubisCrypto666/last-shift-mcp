@@ -511,3 +511,12 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
   - sesja 2026-09-27 — Opcja A wdrożona jako łatka (`client/src/roomHost.ts`,
     `client/src/main.ts`); sprawdzenie SEP-1865 wykonane, wynik jak wyżej;
     pozycja otwarta do decyzji właściciela.
+  - sesja 2026-09-27 — **Decyzja właściciela: wdrażamy Opcję B.**
+    Uzasadnienie: Opcja A działa tylko w naszym kliencie (łatka
+    `client/src/roomHost.ts` ponownie odczytuje zasób i podmienia
+    `iframe.srcdoc` po każdym `tools/call`), ale w prawdziwym hoście MCP
+    Apps (np. Alexa+) host czeka na `ui/notifications/initialized` od
+    widoku przed wysłaniem czegokolwiek — bez Opcji B mapa zostaje
+    zamrożona na stanie początkowym, bo widok nigdy tej notyfikacji nie
+    wysyła. Plan wdrożenia Opcji B do opisania osobno (bez kodu, do
+    akceptacji przed implementacją).
