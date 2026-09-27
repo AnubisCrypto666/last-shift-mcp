@@ -1,7 +1,7 @@
 import type { Client } from "@modelcontextprotocol/client";
 import { COMMAND_HINT, parseCommand } from "./commandParser.js";
 import { getClient } from "./mcpClient.js";
-import { mountRoomView } from "./roomHost.js";
+import { mountRoomView, refreshRoomView, type RoomHost } from "./roomHost.js";
 import { narrateRoomState } from "./roomState.js";
 
 const chatLog = document.querySelector<HTMLDivElement>("#chat-log")!;
@@ -51,7 +51,7 @@ async function narrateAndLog(client: Client): Promise<void> {
   }
 }
 
-async function handleCommand(client: Client, text: string): Promise<void> {
+async function handleCommand(client: Client, text: string, host: RoomHost | undefined): Promise<void> {
   const parsed = parseCommand(text);
   if (!parsed) {
     appendLine(COMMAND_HINT);
@@ -62,6 +62,13 @@ async function handleCommand(client: Client, text: string): Promise<void> {
     const result = await client.callTool({ name: parsed.tool, arguments: parsed.args });
     for (const block of result.content ?? []) {
       if (block.type === "text") appendLine(block.text);
+    }
+    if (host) {
+      try {
+        await refreshRoomView(client, host);
+      } catch (error) {
+        appendLine(`Failed to refresh room view: ${error instanceof Error ? error.message : String(error)}`);
+      }
     }
   } catch (error) {
     appendLine(`Action failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -81,8 +88,9 @@ getClient()
 
     registerElicitationHandler(client);
 
+    let host: RoomHost | undefined;
     try {
-      const host = await mountRoomView(client, roomFrameContainer);
+      host = await mountRoomView(client, roomFrameContainer);
       if (!host) {
         appendLine("No MCP Apps UI resource declared by the server's tools.");
       }
@@ -111,7 +119,7 @@ getClient()
         return;
       }
 
-      void handleCommand(client, value);
+      void handleCommand(client, value, host);
     });
   })
   .catch((error: unknown) => {

@@ -4,6 +4,7 @@ import { AppBridge, PostMessageTransport, buildAllowAttribute, getToolUiResource
 export interface RoomHost {
   iframe: HTMLIFrameElement;
   bridge: AppBridge;
+  resourceUri: string;
 }
 
 /**
@@ -22,18 +23,23 @@ export interface RoomHost {
  * (the ticking clock) work together. Whether to extend the view side is a
  * separate decision, not made here.
  */
+async function readResourceHtml(client: Client, uri: string): Promise<string> {
+  const { contents } = await client.readResource({ uri });
+  const content = contents[0];
+  const html = content && "text" in content ? content.text : undefined;
+  if (typeof html !== "string") {
+    throw new Error(`Resource ${uri} did not return text content`);
+  }
+  return html;
+}
+
 export async function mountRoomView(client: Client, container: HTMLElement): Promise<RoomHost | undefined> {
   const { tools } = await client.listTools();
   const toolWithUi = tools.find((tool) => getToolUiResourceUri(tool) !== undefined);
   const resourceUri = toolWithUi ? getToolUiResourceUri(toolWithUi) : undefined;
   if (!resourceUri) return undefined;
 
-  const { contents } = await client.readResource({ uri: resourceUri });
-  const content = contents[0];
-  const html = content && "text" in content ? content.text : undefined;
-  if (typeof html !== "string") {
-    throw new Error(`Resource ${resourceUri} did not return text content`);
-  }
+  const html = await readResourceHtml(client, resourceUri);
 
   const iframe = document.createElement("iframe");
   iframe.setAttribute("sandbox", "allow-scripts");
@@ -56,5 +62,18 @@ export async function mountRoomView(client: Client, container: HTMLElement): Pro
 
   iframe.srcdoc = html;
 
-  return { iframe, bridge };
+  return { iframe, bridge, resourceUri };
+}
+
+/**
+ * Re-reads the room-view resource and replaces the iframe's content.
+ *
+ * Stopgap (audit OI-14, option A): the resource already renders fresh
+ * state on every read (server/src/room/uiRoomMap.ts), but the view has no
+ * live channel to the host (see the known-limitation note above) - a full
+ * `srcdoc` replace is the only way to reflect a state change today. Call
+ * this after every tool call that might have changed room state.
+ */
+export async function refreshRoomView(client: Client, host: RoomHost): Promise<void> {
+  host.iframe.srcdoc = await readResourceHtml(client, host.resourceUri);
 }
