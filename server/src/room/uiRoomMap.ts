@@ -58,6 +58,7 @@ export function renderRoomMapHtml(view: ReturnType<typeof toRoomStateView>): str
   <script>
     (function () {
       var remaining = ${JSON.stringify(view.remainingSeconds)};
+      var status = ${JSON.stringify(view.status)};
       var el = document.getElementById("timer");
       function render() {
         var m = Math.floor(Math.max(0, remaining) / 60);
@@ -65,11 +66,13 @@ export function renderRoomMapHtml(view: ReturnType<typeof toRoomStateView>): str
         el.textContent = String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
       }
       render();
-      var interval = setInterval(function () {
-        remaining -= 1;
-        if (remaining <= 0) { remaining = 0; clearInterval(interval); }
-        render();
-      }, 1000);
+      if (status === "active") {
+        var interval = setInterval(function () {
+          remaining -= 1;
+          if (remaining <= 0) { remaining = 0; clearInterval(interval); }
+          render();
+        }, 1000);
+      }
     })();
   </script>
 </body>

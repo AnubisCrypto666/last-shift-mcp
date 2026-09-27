@@ -1,8 +1,25 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import vm from "node:vm";
 import { renderRoomMapHtml } from "../../src/room/uiRoomMap.js";
 import { createInitialRoomState, toRoomStateView } from "../../src/room/state.js";
 
 const T0 = 1_700_000_000_000;
+
+function runEmbeddedClockScript(html: string) {
+  const script = html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
+  if (!script) throw new Error("embedded clock script not found in rendered HTML");
+
+  const element = { textContent: "" };
+  const setInterval = vi.fn();
+  const clearInterval = vi.fn();
+  const context = vm.createContext({
+    document: { getElementById: () => element },
+    setInterval,
+    clearInterval,
+  });
+  vm.runInContext(script, context);
+  return { element, setInterval, clearInterval };
+}
 
 describe("renderRoomMapHtml", () => {
   it("embeds the station/room name, status, and remaining seconds", () => {
@@ -47,5 +64,31 @@ describe("renderRoomMapHtml", () => {
     const html = renderRoomMapHtml(toRoomStateView(state, T0));
     expect(html).not.toContain("<script>alert(1)</script>");
     expect(html).toContain("&lt;script&gt;");
+  });
+
+  it("keeps the countdown ticking while the game is active", () => {
+    const state = createInitialRoomState(T0);
+    const html = renderRoomMapHtml(toRoomStateView(state, T0));
+    const { setInterval } = runEmbeddedClockScript(html);
+
+    expect(setInterval).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not start the ticking countdown once the game is over (escaped)", () => {
+    const state = createInitialRoomState(T0);
+    state.escaped = true;
+    const html = renderRoomMapHtml(toRoomStateView(state, T0));
+    const { element, setInterval } = runEmbeddedClockScript(html);
+
+    expect(setInterval).not.toHaveBeenCalled();
+    expect(element.textContent).toBe("10:00"); // final state, not a live tick
+  });
+
+  it("does not start the ticking countdown once the game is over (failed)", () => {
+    const state = createInitialRoomState(T0);
+    const html = renderRoomMapHtml(toRoomStateView(state, T0 + 10 * 60 * 1000));
+    const { setInterval } = runEmbeddedClockScript(html);
+
+    expect(setInterval).not.toHaveBeenCalled();
   });
 });
