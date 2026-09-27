@@ -442,3 +442,72 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
   - sesja 2026-09-19 — audyt wykrył brak (F5); rozpoznanie SDK wykonane
     (patrz NOTES.md, wpis "F5 recon"), wdrożenie wstrzymane do decyzji
     właściciela.
+
+---
+
+## OI-14: Widok `ui://room-map` nie uczestniczy w protokole MCP Apps (opcja B)
+
+- **Status:** otwarte, do decyzji właściciela
+- **Zakres:** diagnoza 2026-09-27 (ręczne przejście gry, problem (b)):
+  widok `ui://room-map` renderowany przez `client/src/roomHost.ts` nigdy
+  nie wysyła `ui/initialize`/`ui/notifications/initialized` (jego HTML,
+  generowany w `server/src/room/uiRoomMap.ts`, uruchamia wyłącznie lokalny
+  skrypt zegara — zero JS-u protokołu MCP Apps po stronie widoku). To ta
+  sama luka udokumentowana już 17.09 w komentarzu `roomHost.ts` i w
+  NOTES.md (krok 3). **Opcja A** (łatka: klient ponownie odczytuje zasób
+  i podmienia `iframe.srcdoc` po każdym `tools/call`) wdrożona tego samego
+  dnia jako natychmiastowe obejście — naprawia widoczny stan
+  (ekwipunek/fragmenty/status), ale **nie** implementuje realnego kanału
+  host↔widok. Przy weryfikacji Opcji A ujawniony dodatkowy, osobny
+  problem: wbudowany skrypt zegara w `uiRoomMap.ts` (linie ~60-72) nigdy
+  nie sprawdza `status` — po ucieczce świeżo załadowany iframe i tak
+  odlicza dalej lokalnie, bo nic go nie zatrzymuje; to błąd po stronie
+  serwera (generowany HTML), nie klienta, nieadresowany przez Opcję A i
+  nieadresowany tutaj — osobna sprawa do zgłoszenia właścicielowi.
+- **Wynik sprawdzenia specyfikacji** (SEP-1865, "Status: Stable
+  (2026-01-26)", tekst pobrany z
+  `github.com/modelcontextprotocol/ext-apps/specification/2026-01-26/apps.mdx`
+  — nie ma go w node_modules, tylko skompilowane typy):
+  - **`ui/notifications/tool-result` — MUST, warunkowo.** Dosłowny cytat:
+    *"Host MUST send this notification when tool execution completes (if
+    the View is displayed during tool execution)."* Warunek jest u nas
+    spełniony: widok jest zamontowany i widoczny przez cały czas sesji, a
+    wszystkie trzy narzędzia (`examine_room`, `use_item`,
+    `attempt_escape`) deklarują `_meta.ui.resourceUri` wskazujące na ten
+    sam zasób. Czyli to MUST faktycznie na nas obowiązuje, nie tylko
+    teoretycznie.
+  - **`ui/initialize`/`ui/notifications/initialized` (widok→host) — nie
+    znalazłem literalnego zdania "View MUST wysłać ui/initialize", ale
+    jest twardy MUST po stronie hosta, który strukturalnie to wymusza.**
+    Dosłowny cytat (sekcja o Sandboxie, pkt 6): *"The Host MUST NOT send
+    any request or notification to the View before it receives an
+    `initialized` notification."* Skoro widok nigdy nie wysyła tej
+    notyfikacji, host jest permanentnie zablokowany własnym MUST NOT
+    przed wysłaniem czegokolwiek — w tym przed spełnieniem powyższego
+    MUST na `ui/notifications/tool-result`. Więc brak inicjalizacji po
+    stronie widoku nie jest sam w sobie nazwany MUST wprost, ale
+    **uniemożliwia spełnienie innego, jawnego MUST**.
+  - **Wniosek:** przynajmniej jedno z badanych wymagań to MUST (warunkowo
+    spełniony u nas), więc per kryterium zamknięcia niżej — to nie jest
+    tylko decyzja "SHOULD, można odłożyć bez konsekwencji dla README".
+- **To koliduje wprost z obecnym akapitem "Zgodność z protokołem" w
+  README** ("Serwer spełnia wszystkie wymogi MUST specyfikacji ...
+  i rozszerzenia MCP Apps 2026-01-26") — ten akapit nie wymienia tej luki
+  jako odstępstwa, bo nie była jeszcze znana w momencie jego pisania
+  (2026-09-19/22). Wymaga korekty niezależnie od tego, czy B zostanie
+  wdrożone.
+- **Kryterium zamknięcia:** zgodnie z ustaleniem — skoro `ui/notifications/tool-result`
+  to MUST spełniony warunkowo u nas: albo wdrożyć Opcję B (widok
+  realnie wysyła `ui/initialize`, host realnie wysyła
+  `ui/notifications/tool-result`/aktualizacje) przed zgłoszeniem, albo
+  skorygować akapit "Zgodność z protokołem" w README, żeby nie deklarować
+  pełnej zgodności MUST z MCP Apps 2026-01-26, dopóki ta luka istnieje.
+  Decyzja właściciela, nie zakładam żadnej z dwóch ścieżek z góry.
+- **Termin:** nie blokuje Bramki 2 (Opcja A ją zamyka literalnie — patrz
+  Kamienie milowe, 2026-09-26). Rozstrzygnąć przed materiałami
+  zgłoszeniowymi (Faza 3), bo dotyczy bezpośrednio deklarowanej zgodności
+  w README.
+- **Historia:**
+  - sesja 2026-09-27 — Opcja A wdrożona jako łatka (`client/src/roomHost.ts`,
+    `client/src/main.ts`); sprawdzenie SEP-1865 wykonane, wynik jak wyżej;
+    pozycja otwarta do decyzji właściciela.
