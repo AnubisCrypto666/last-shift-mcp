@@ -520,3 +520,59 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
     zamrożona na stanie początkowym, bo widok nigdy tej notyfikacji nie
     wysyła. Plan wdrożenia Opcji B do opisania osobno (bez kodu, do
     akceptacji przed implementacją).
+  - sesja 2026-09-29 — **Plan Opcji B zaakceptowany przez właściciela
+    (etapami, z playtestem po każdym etapie).** Przed startem prac,
+    zgodnie z warunkiem właściciela, ustalono poziom wymagań (MUST/
+    SHOULD/MAY) dla wszystkich powiadomień host→widok związanych z
+    wywołaniem narzędzia. Źródło: plik pobrany bezpośrednio
+    (`curl https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/main/specification/2026-01-26/apps.mdx`,
+    59181 bajtów, sekcja "Notifications (Host → View)" i "Sandbox
+    proxy" — treść zweryfikowana lokalnie, nie przez podsumowanie
+    narzędzia webowego, które przy tym pliku ucina się w połowie
+    sekcji `tool-cancelled`). Cytaty dosłowne:
+    - **`ui/notifications/tool-input` — MUST.** *"Host MUST send this
+      notification with the complete tool arguments after the View's
+      initialize request completes."* I dalej: *"This notification is
+      sent at most once and is required before sending
+      `ui/notifications/tool-result`."*
+    - **`ui/notifications/tool-input-partial` — MAY** (host), z
+      podwymaganiami: *"MUST stop sending once
+      `ui/notifications/tool-input` is sent with complete arguments"*
+      (host) oraz po stronie widoku *"MUST NOT rely on partial
+      arguments for critical operations"*, *"SHOULD gracefully handle
+      missing or changing fields between notifications"*.
+    - **`ui/notifications/tool-result` — MUST, warunkowo** (jak już
+      ustalono 27.09): *"Host MUST send this notification when tool
+      execution completes (if the View is displayed during tool
+      execution)."*
+    - **`ui/notifications/tool-cancelled` — MUST.** *"Host MUST send
+      this notification if the tool execution was cancelled, for any
+      reason (which can optionally be specified), including user
+      action, sampling error, classifier intervention, etc."*
+    - **`ui/resource-teardown` — MUST** (przed zdjęciem widoku, poza
+      zakresem tego wdrożenia — u nas widok żyje przez całą sesję):
+      *"Host MUST send this notification before tearing down the UI
+      resource, for any reason... Host SHOULD wait for a response
+      before tearing down the resource."*
+    - **Kolejność (sekcja "Sandbox proxy", pkt 6, już cytowana
+      27.09) — MUST NOT:** *"The Host MUST NOT send any request or
+      notification to the View before it receives an `initialized`
+      notification."*
+    - **Wniosek dla zakresu Opcji B:** trzy MUST-y dotyczą naszego
+      przypadku wprost — `tool-input`, `tool-result`, `tool-cancelled`
+      (nasze narzędzia nie wspierają dziś anulowania, więc
+      `tool-cancelled` zostaje udokumentowanym brakiem, nie
+      wdrożeniem — gra nie ma mechanizmu przerywania `tools/call` w
+      trakcie wykonania). `ui/resource-teardown` nie dotyczy tego
+      wdrożenia (widok nigdy nie jest zdejmowany w trakcie sesji gry).
+      `tool-input-partial` jest MAY — pomijamy (brak streamingu
+      argumentów w tej grze).
+    - **Uwaga o trybie widoku:** diagram sekwencji w sekcji
+      "Lifecycle" → "3. Interactive Phase" pokazuje pojedynczą
+      instancję widoku odbierającą wiele notyfikacji
+      `tool-input`/`tool-result` w pętli (nasz przypadek — trwały
+      klient) — spec nie zabrania też hosta, który montuje widok od
+      nowa przy każdym wywołaniu narzędzia (typowy prawdziwy host);
+      nie znaleziono normatywnego zdania preferującego jeden z tych
+      wzorców nad drugim — oba muszą działać, stąd wymóg testowy (b)
+      poniżej.
