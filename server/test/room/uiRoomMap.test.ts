@@ -21,6 +21,52 @@ function runEmbeddedClockScript(html: string) {
   return { element, setInterval, clearInterval };
 }
 
+/**
+ * Extracts the second embedded <script> (the bundled MCP Apps view runtime,
+ * server/src/room/view/roomMapView.ts) and runs it in a vm context with a
+ * fake `window.parent` standing in for the host, so we can watch what the
+ * view actually posts - proving the SEP-1865 handshake ordering rather than
+ * just asserting the bundle's text is present.
+ */
+function runViewBundle(html: string) {
+  const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]!);
+  const bundleScript = scripts[1];
+  if (!bundleScript) throw new Error("embedded view bundle script not found in rendered HTML (expected 2nd <script>)");
+
+  const sent: Array<Record<string, unknown>> = [];
+  const listeners: Array<(event: { source: unknown; data: unknown }) => void> = [];
+  const fakeParent = { postMessage: (message: Record<string, unknown>) => sent.push(message) };
+  const windowStub = {
+    parent: fakeParent,
+    addEventListener: (type: string, listener: (event: { source: unknown; data: unknown }) => void) => {
+      if (type === "message") listeners.push(listener);
+    },
+    removeEventListener: () => {},
+  };
+
+  const context = vm.createContext({
+    window: windowStub,
+    console,
+    crypto: globalThis.crypto,
+    structuredClone: globalThis.structuredClone,
+    TextEncoder,
+    TextDecoder,
+    AbortController,
+    URL,
+    URLSearchParams,
+    setTimeout,
+    clearTimeout,
+  });
+  vm.runInContext(bundleScript, context);
+
+  return {
+    sent,
+    dispatchFromHost(data: Record<string, unknown>) {
+      for (const listener of listeners) listener({ source: fakeParent, data });
+    },
+  };
+}
+
 describe("renderRoomMapHtml", () => {
   it("embeds the station/room name, status, and remaining seconds", () => {
     const state = createInitialRoomState(T0);
@@ -90,5 +136,36 @@ describe("renderRoomMapHtml", () => {
     const { setInterval } = runEmbeddedClockScript(html);
 
     expect(setInterval).not.toHaveBeenCalled();
+  });
+});
+
+describe("embedded MCP Apps view bundle (OI-14, option B)", () => {
+  it("sends ui/initialize on load, and ui/notifications/initialized only after the host responds", async () => {
+    const state = createInitialRoomState(T0);
+    const html = renderRoomMapHtml(toRoomStateView(state, T0));
+    const { sent, dispatchFromHost } = runViewBundle(html);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).toMatchObject({ jsonrpc: "2.0", method: "ui/initialize" });
+    // SEP-1865, "Sandbox proxy" point 6: the Host MUST NOT send anything
+    // before `initialized` - symmetric on the view side, nothing but
+    // ui/initialize may go out before the host's response arrives.
+    expect(sent.some((m) => m.method === "ui/notifications/initialized")).toBe(false);
+
+    dispatchFromHost({
+      jsonrpc: "2.0",
+      id: sent[0]!.id,
+      result: {
+        protocolVersion: "2025-11-25",
+        hostInfo: { name: "test-host", version: "0.0.0" },
+        hostCapabilities: {},
+        hostContext: {},
+      },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(sent).toHaveLength(2);
+    expect(sent[1]).toMatchObject({ jsonrpc: "2.0", method: "ui/notifications/initialized" });
   });
 });

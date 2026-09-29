@@ -1,12 +1,45 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { registerAppResource, RESOURCE_MIME_TYPE } from "@modelcontextprotocol/ext-apps/server";
 import type { McpServer } from "@modelcontextprotocol/server";
 import { toRoomStateView, type RoomState } from "./state.js";
 
 export const ROOM_MAP_URI = "ui://room-map";
 
+// Same relative depth from src/room/ (dev, via tsx) and dist/room/ (prod,
+// via tsc) up to the server package root, so this resolves correctly either
+// way: server/{src,dist}/room/uiRoomMap.{ts,js} -> ../../build/...
+const VIEW_BUNDLE_PATH = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../build/roomMapView.bundle.js");
+
+/**
+ * The MCP Apps *view* runtime (server/src/room/view/roomMapView.ts),
+ * pre-bundled by esbuild into a self-contained IIFE (OI-14, option B) -
+ * see package.json's build:view script, wired to run automatically before
+ * build/dev/start/test via npm pre-hooks. Read once at module load; a
+ * missing file means build:view hasn't run yet.
+ */
+const VIEW_BUNDLE_JS = (() => {
+  try {
+    return readFileSync(VIEW_BUNDLE_PATH, "utf8");
+  } catch (error) {
+    throw new Error(
+      `Room-map view bundle not found at ${VIEW_BUNDLE_PATH}. Run "npm run build:view" first (npm run dev/build/start/test do this automatically). Cause: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+})();
+
 function escapeHtml(value: string): string {
   const map: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
   return value.replace(/[&<>"']/g, (ch) => map[ch]!);
+}
+
+// A minified third-party bundle could in principle contain the literal
+// substring "</script" inside a string constant, which would prematurely
+// close our inline <script> tag at the HTML-parser level regardless of JS
+// syntax. Neutralize it without changing the bundle's behavior.
+function escapeScriptClose(js: string): string {
+  return js.replace(/<\/script/gi, "<\\/script");
 }
 
 /**
@@ -75,6 +108,7 @@ export function renderRoomMapHtml(view: ReturnType<typeof toRoomStateView>): str
       }
     })();
   </script>
+  <script>${escapeScriptClose(VIEW_BUNDLE_JS)}</script>
 </body>
 </html>`;
 }

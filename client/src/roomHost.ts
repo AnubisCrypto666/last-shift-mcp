@@ -57,6 +57,14 @@ export async function mountRoomView(client: Client, container: HTMLElement): Pro
     { name: "last-shift-mcp-client", version: "0.1.0" },
     { serverTools: {} },
   );
+  // OI-14 (option B): the iframe below is sandboxed without
+  // `allow-same-origin`, so it has an opaque origin - there is no `origin`
+  // string to check. Passing `frameWindow` as PostMessageTransport's
+  // `eventSource` makes it validate inbound messages by
+  // `event.source === frameWindow` instead (see
+  // @modelcontextprotocol/ext-apps/message-transport.ts), which works
+  // regardless of origin opacity. Confirmed by reading the transport's
+  // source (checked into node_modules): it never reads `event.origin`.
   const transport = new PostMessageTransport(frameWindow, frameWindow);
   await bridge.connect(transport);
 
