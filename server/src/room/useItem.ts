@@ -1,7 +1,8 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod/v4";
 import { statusOverMessage } from "./examineRoom.js";
-import { VENT_FRAGMENT, getStatus, type RoomState } from "./state.js";
+import { roomStateViewSchema } from "./roomStateSchema.js";
+import { VENT_FRAGMENT, getStatus, toRoomStateView, type RoomState } from "./state.js";
 import { ROOM_MAP_URI } from "./uiRoomMap.js";
 
 /**
@@ -38,15 +39,16 @@ export function registerUseItemTool(server: McpServer, state: RoomState): void {
         item: z.enum(["multitool"]).describe("The item to use, from your inventory."),
         target: z.enum(["vent"]).describe("What to use it on."),
       }),
+      outputSchema: roomStateViewSchema,
       _meta: { ui: { resourceUri: ROOM_MAP_URI } },
     },
     async (args) => {
       const status = getStatus(state);
       if (status !== "active") {
-        return { content: [{ type: "text" as const, text: statusOverMessage(status) }] };
+        return { content: [{ type: "text" as const, text: statusOverMessage(status) }], structuredContent: toRoomStateView(state) };
       }
       const text = applyUseItem(state, args.item, args.target);
-      return { content: [{ type: "text" as const, text }] };
+      return { content: [{ type: "text" as const, text }], structuredContent: toRoomStateView(state) };
     },
   );
 }

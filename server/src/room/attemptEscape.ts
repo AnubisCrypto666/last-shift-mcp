@@ -1,7 +1,8 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod/v4";
 import { statusOverMessage } from "./examineRoom.js";
-import { getEscapeCode, getStatus, type RoomState } from "./state.js";
+import { roomStateViewSchema } from "./roomStateSchema.js";
+import { getEscapeCode, getStatus, toRoomStateView, type RoomState } from "./state.js";
 import { ROOM_MAP_URI } from "./uiRoomMap.js";
 
 export const WRONG_CODE_TIME_PENALTY_SECONDS = 20;
@@ -44,12 +45,13 @@ export function registerAttemptEscapeTool(server: McpServer, state: RoomState): 
       description:
         "Make a final attempt to escape Maintenance Bay 7. You'll be asked to enter the escape code you've assembled from the fragments you've found.",
       inputSchema: z.object({}),
+      outputSchema: roomStateViewSchema,
       _meta: { ui: { resourceUri: ROOM_MAP_URI } },
     },
     async (_args, ctx) => {
       const status = getStatus(state);
       if (status !== "active") {
-        return { content: [{ type: "text" as const, text: statusOverMessage(status) }] };
+        return { content: [{ type: "text" as const, text: statusOverMessage(status) }], structuredContent: toRoomStateView(state) };
       }
 
       let outcome: ElicitOutcome;
@@ -87,7 +89,7 @@ export function registerAttemptEscapeTool(server: McpServer, state: RoomState): 
       }
 
       const text = applyAttemptEscape(state, outcome);
-      return { content: [{ type: "text" as const, text }] };
+      return { content: [{ type: "text" as const, text }], structuredContent: toRoomStateView(state) };
     },
   );
 }

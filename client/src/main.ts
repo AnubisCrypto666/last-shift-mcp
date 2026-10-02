@@ -1,7 +1,7 @@
 import type { Client } from "@modelcontextprotocol/client";
 import { COMMAND_HINT, parseCommand } from "./commandParser.js";
 import { getClient } from "./mcpClient.js";
-import { mountRoomView, refreshRoomView, type RoomHost } from "./roomHost.js";
+import { mountRoomView, refreshRoomView, sendToolCallToView, type RoomHost } from "./roomHost.js";
 import { narrateRoomState } from "./roomState.js";
 
 const chatLog = document.querySelector<HTMLDivElement>("#chat-log")!;
@@ -64,6 +64,11 @@ async function handleCommand(client: Client, text: string, host: RoomHost | unde
       if (block.type === "text") appendLine(block.text);
     }
     if (host) {
+      try {
+        await sendToolCallToView(host, { name: parsed.tool, arguments: parsed.args }, result);
+      } catch (error) {
+        appendLine(`Failed to notify room view of tool call: ${error instanceof Error ? error.message : String(error)}`);
+      }
       try {
         await refreshRoomView(client, host);
       } catch (error) {

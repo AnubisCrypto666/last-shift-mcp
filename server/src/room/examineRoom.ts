@@ -2,7 +2,8 @@ import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod/v4";
 import { createBedrockNarrativeGenerator, type NarrativeGenerator } from "../bedrock.js";
 import { baseDescription, buildNarrationPrompt, recordedFixture, stripNarrationFormatting, type ExamineTarget } from "./descriptions.js";
-import { CONTROL_PANEL_FRAGMENT, MULTITOOL_ITEM, getStatus, type RoomState, type RoomStatus } from "./state.js";
+import { roomStateViewSchema } from "./roomStateSchema.js";
+import { CONTROL_PANEL_FRAGMENT, MULTITOOL_ITEM, getStatus, toRoomStateView, type RoomState, type RoomStatus } from "./state.js";
 import { ROOM_MAP_URI } from "./uiRoomMap.js";
 
 export interface ExamineRoomDeps {
@@ -88,12 +89,13 @@ export function registerExamineRoomTool(server: McpServer, state: RoomState, dep
       inputSchema: z.object({
         target: z.enum(["control_panel", "toolbox", "vent"]).optional().describe("What to examine; omit to look around the whole room."),
       }),
+      outputSchema: roomStateViewSchema,
       _meta: { ui: { resourceUri: ROOM_MAP_URI } },
     },
     async (args, ctx) => {
       const status = getStatus(state);
       if (status !== "active") {
-        return { content: [{ type: "text" as const, text: statusOverMessage(status) }] };
+        return { content: [{ type: "text" as const, text: statusOverMessage(status) }], structuredContent: toRoomStateView(state) };
       }
 
       const target = args.target;
@@ -118,7 +120,7 @@ export function registerExamineRoomTool(server: McpServer, state: RoomState, dep
         },
       });
 
-      return { content: [{ type: "text" as const, text }] };
+      return { content: [{ type: "text" as const, text }], structuredContent: toRoomStateView(state) };
     },
   );
 }
