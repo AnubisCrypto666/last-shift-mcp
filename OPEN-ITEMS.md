@@ -576,3 +576,75 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
       nie znaleziono normatywnego zdania preferującego jeden z tych
       wzorców nad drugim — oba muszą działać, stąd wymóg testowy (b)
       poniżej.
+  - sesja 2026-10-02 (właściciel, Chrome) — **potwierdzenie manualne Etapu 2
+    (commit d64e50e).** Po komendzie "examine control panel" konsola
+    przeglądarki pokazuje log `[room-map view] tool-result ...` z realnym
+    `structuredContent` (nie `null`) — potwierdza, że
+    `ui/notifications/tool-result` z `structuredContent` faktycznie dociera
+    do widoku przez prawdziwy kanał host→widok (`AppBridge`/
+    `PostMessageTransport`), nie tylko w teście z podstawionym transportem
+    (`client/test/roomHost.test.ts`). DOM widoku jeszcze się nie
+    aktualizował na tej podstawie — to zakres Etapu 3, niżej.
+  - sesja 2026-10-04 — **Etap 3 zaimplementowany: aktualizacja DOM w
+    miejscu + przełącznik `?refresh=off`.** Przed zmianami potwierdzony w
+    kodzie mechanizm zaobserwowanego podczas playtestu ostrzeżenia
+    "AppBridge received a second ui/initialize"
+    (`node_modules/@modelcontextprotocol/ext-apps/dist/src/app-bridge.js`,
+    metoda `_onAppsInitialize`): ostrzeżenie pada, gdy `this._appInfo` jest
+    już ustawione na tej samej instancji `AppBridge`, czyli gdy drugi
+    `ui/initialize` dociera tym samym kanałem postMessage. Mechanizm: każde
+    `iframe.srcdoc = ...` (Opcja A, `refreshRoomView`) ładuje w iframie
+    zupełnie nowy dokument, co ponownie uruchamia wbudowany skrypt widoku —
+    ten tworzy nową instancję `App` i wywołuje `connect()` od nowa, stąd
+    drugi `ui/initialize` na niezmienionym kanale do hosta. Host obsługuje
+    to łagodnie (podmienia zapamiętane `appInfo`, tylko loguje
+    ostrzeżenie) — nie jest to błąd krytyczny, ale potwierdza, że Opcja A
+    powtarza handshake przy każdym wywołaniu narzędzia.
+    - Zrealizowano: (1) `server/src/room/view/roomMapView.ts` — na
+      `ui/notifications/tool-result` z poprawnym `structuredContent`
+      (walidacja `roomStateViewSchema.safeParse`) aktualizuje w miejscu
+      pięć pól DOM renderowanych przez `uiRoomMap.ts` (status, zegar,
+      ekwipunek, fragmenty, wentylacja) bez przebudowy całego dokumentu
+      (`replaceChildren`/`textContent`, zero `innerHTML`); zegar
+      resynchronizuje się z `remainingSeconds` i nadal tyka lokalnie,
+      zatrzymując się dla `status !== "active"` — przez wspólny obiekt
+      `window.__roomMapClock` wystawiony przez wbudowany skrypt zegara w
+      `uiRoomMap.ts` (jedna instancja `setInterval`, nie dwie
+      konkurujące). (2) `client/src/roomHost.ts` (`shouldRefreshSrcdoc`) +
+      `client/src/main.ts` — `?refresh=off` w URL wyłącza wywołanie
+      `refreshRoomView` (Opcja A) po każdej komendzie; domyślnie
+      (parametr nieobecny albo inna wartość) zostaje włączone, zgodnie z
+      zakresem (zmiana domyślnego trybu to Etap 4, nie ten). (3) Oba
+      tryby działają: `sendToolCallToView` (Opcja B) wykonuje się zawsze;
+      tylko `refreshRoomView` jest bramkowane, więc przy `refresh=off`
+      iframe nigdy nie jest przeładowywany po starcie i widok żyje przez
+      całą sesję, aktualizując się wyłącznie Opcją B. (4) Sprawdzono
+      osobno: usuwanie artefaktów markdown z narracji Bedrocka (problem
+      (a) z playtestu 26.09, nagłówek `# Ostatnia Szychta`) było już
+      wdrożone i przetestowane w commicie `ac8c733` (26.09 —
+      `stripNarrationFormatting` w `server/src/room/descriptions.ts`,
+      wywoływane w `examineRoom.ts`, z testem na kontrolowanym wejściu w
+      `server/test/room/examineRoom.test.ts`, test "strips markdown
+      formatting artifacts from Bedrock output") — ten punkt zakresu
+      Etapu 3 był już spełniony wcześniej, osobny nowy commit nie był
+      potrzebny.
+    - Testy nowe: `server/test/room/uiRoomMap.test.ts` (3 nowe — uruchamiają
+      OBA wbudowane skrypty razem w jednym kontekście `vm`, naśladując
+      współdzielony scope dokumentu w prawdziwym iframie): aktualizacja
+      wszystkich pięciu pól po `tool-result` i nadpisanie przez kolejny
+      `tool-result`; zatrzymanie zegara dla `status: "escaped"` i dla
+      `status: "failed"`. `client/test/roomHost.test.ts` (2 nowe) —
+      `shouldRefreshSrcdoc` dla wartości domyślnej i dla `?refresh=off`.
+      Pakiet server: 99/99 (96/96 + 3). Pakiet client: 4/4 (2/2 + 2).
+      `tsc --noEmit` czyste w obu pakietach (server: `tsconfig.json` i
+      osobno `tsconfig.view.json`, bo ten plik wyklucza `src/room/view`
+      z głównej kompilacji); `npm run build` czyste w obu pakietach.
+    - **Niezweryfikowane manualnie:** że w trybie `?refresh=off` konsola
+      pokazuje `ui/initialize` dokładnie raz na całą sesję — wniosek
+      wywiedziony z czytania kodu `AppBridge`/`App.connect` (patrz wyżej),
+      nie z pomiaru w żywej przeglądarce (repo nie ma `jsdom`/środowiska
+      DOM dla testów klienta — świadomie nie dodane w tym etapie, patrz
+      uzasadnienie w commicie). Czeka na playtest właściciela, patrz
+      instrukcja w odpowiedzi tej sesji. Etap 4 (zmiana domyślnego trybu
+      na `refresh=off`) świadomie poza zakresem tej sesji. OI-14 zostaje
+      otwarte.
