@@ -14,6 +14,7 @@ function runEmbeddedClockScript(html: string) {
   const clearInterval = vi.fn();
   const context = vm.createContext({
     document: { getElementById: () => element },
+    window: {}, // the clock script assigns window.__roomMapClock (OI-14 option B, stage 3)
     setInterval,
     clearInterval,
   });
@@ -66,6 +67,220 @@ function runViewBundle(html: string) {
     },
   };
 }
+
+/** Minimal fake DOM element: just enough of the Element API applyRoomStateView (roomMapView.ts) actually calls. */
+function createFakeElement() {
+  const classes = new Set<string>();
+  const el = {
+    textContent: "",
+    children: [] as unknown[],
+    classList: {
+      toggle: (name: string, force?: boolean) => {
+        const has = classes.has(name);
+        const want = force === undefined ? !has : force;
+        if (want) classes.add(name);
+        else classes.delete(name);
+      },
+      contains: (name: string) => classes.has(name),
+    },
+    replaceChildren: (...nodes: unknown[]) => {
+      el.children = nodes;
+    },
+    append: (...nodes: unknown[]) => {
+      el.children.push(...nodes);
+    },
+  };
+  return el;
+}
+
+/**
+ * Runs BOTH embedded `<script>` blocks (the inline clock, then the bundled
+ * MCP Apps view runtime) in one shared `vm` context - the same way a real
+ * browser shares one global scope between same-document `<script>` tags -
+ * so the view bundle's `window.__roomMapClock?.resync(...)` call (OI-14
+ * option B, stage 3) actually reaches the clock script's real `resync`,
+ * not a stub. `document.getElementById` resolves the five ids
+ * `uiRoomMap.ts` renders (status/timer/inventory-list/fragments-list/vent)
+ * against fake elements that record what was written to them.
+ */
+function runFullRoomMapScripts(html: string) {
+  const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]!);
+  const [clockScript, bundleScript] = scripts;
+  if (!clockScript || !bundleScript) throw new Error("expected two embedded <script> blocks in rendered HTML");
+
+  const elements: Record<string, ReturnType<typeof createFakeElement>> = {
+    timer: createFakeElement(),
+    status: createFakeElement(),
+    "inventory-list": createFakeElement(),
+    "fragments-list": createFakeElement(),
+    vent: createFakeElement(),
+  };
+
+  const sent: Array<Record<string, unknown>> = [];
+  const listeners: Array<(event: { source: unknown; data: unknown }) => void> = [];
+  const fakeParent = { postMessage: (message: Record<string, unknown>) => sent.push(message) };
+  const windowStub = {
+    parent: fakeParent,
+    addEventListener: (type: string, listener: (event: { source: unknown; data: unknown }) => void) => {
+      if (type === "message") listeners.push(listener);
+    },
+    removeEventListener: () => {},
+  };
+  const documentStub = {
+    getElementById: (id: string) => elements[id] ?? null,
+    createElement: () => createFakeElement(),
+  };
+
+  const setIntervalCalls: unknown[][] = [];
+  const clearIntervalCalls: unknown[][] = [];
+
+  const context = vm.createContext({
+    window: windowStub,
+    document: documentStub,
+    console,
+    crypto: globalThis.crypto,
+    structuredClone: globalThis.structuredClone,
+    TextEncoder,
+    TextDecoder,
+    AbortController,
+    URL,
+    URLSearchParams,
+    setTimeout,
+    clearTimeout,
+    setInterval: (...args: unknown[]) => {
+      setIntervalCalls.push(args);
+      return setIntervalCalls.length;
+    },
+    clearInterval: (...args: unknown[]) => {
+      clearIntervalCalls.push(args);
+    },
+  });
+
+  vm.runInContext(clockScript, context);
+  vm.runInContext(bundleScript, context);
+
+  return {
+    elements,
+    sent,
+    setIntervalCalls,
+    clearIntervalCalls,
+    dispatchFromHost(data: Record<string, unknown>) {
+      for (const listener of listeners) listener({ source: fakeParent, data });
+    },
+  };
+}
+
+const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+async function completeHandshake(run: ReturnType<typeof runFullRoomMapScripts>) {
+  await tick();
+  run.dispatchFromHost({
+    jsonrpc: "2.0",
+    id: run.sent[0]!.id,
+    result: { protocolVersion: "2025-11-25", hostInfo: { name: "test-host", version: "0.0.0" }, hostCapabilities: {}, hostContext: {} },
+  });
+  await tick();
+}
+
+function sendToolResult(run: ReturnType<typeof runFullRoomMapScripts>, structuredContent: Record<string, unknown>) {
+  run.dispatchFromHost({ jsonrpc: "2.0", method: "ui/notifications/tool-result", params: { content: [], structuredContent } });
+  return tick();
+}
+
+describe("embedded view bundle applies tool-result to the DOM in place (OI-14 option B, stage 3)", () => {
+  it("writes all five fields from structuredContent, and a later tool-result overwrites the earlier one", async () => {
+    const state = createInitialRoomState(T0);
+    const html = renderRoomMapHtml(toRoomStateView(state, T0));
+    const run = runFullRoomMapScripts(html);
+    await completeHandshake(run);
+
+    await sendToolResult(run, {
+      station: "Kessler Station",
+      room: "Maintenance Bay 7",
+      status: "active",
+      remainingSeconds: 550,
+      inventory: ["multitool"],
+      discoveredFragments: { control_panel: "7X" },
+      ventUnlocked: false,
+      wrongAttempts: 0,
+    });
+
+    expect(run.elements.status.textContent).toBe("active");
+    expect(run.elements.timer.textContent).toBe("09:10");
+    expect(run.elements["inventory-list"].children).toHaveLength(1);
+    expect(run.elements["fragments-list"].children).toHaveLength(1);
+    expect(run.elements.vent.textContent).toBe("Vent: sealed");
+    expect(run.elements.vent.classList.contains("locked")).toBe(true);
+
+    await sendToolResult(run, {
+      station: "Kessler Station",
+      room: "Maintenance Bay 7",
+      status: "active",
+      remainingSeconds: 500,
+      inventory: ["multitool"],
+      discoveredFragments: { control_panel: "7X", vent: "Q2" },
+      ventUnlocked: true,
+      wrongAttempts: 1,
+    });
+
+    // The second tool-result's values replace the first's - no leftover from the earlier state.
+    expect(run.elements.timer.textContent).toBe("08:20");
+    expect(run.elements["fragments-list"].children).toHaveLength(2);
+    expect(run.elements.vent.textContent).toBe("Vent: open");
+    expect(run.elements.vent.classList.contains("unlocked")).toBe(true);
+    expect(run.elements.vent.classList.contains("locked")).toBe(false);
+  });
+
+  it("stops the clock when a tool-result reports status escaped", async () => {
+    const state = createInitialRoomState(T0);
+    const html = renderRoomMapHtml(toRoomStateView(state, T0));
+    const run = runFullRoomMapScripts(html);
+    await completeHandshake(run);
+
+    expect(run.setIntervalCalls).toHaveLength(1); // the initial active-state clock
+
+    await sendToolResult(run, {
+      station: "Kessler Station",
+      room: "Maintenance Bay 7",
+      status: "escaped",
+      remainingSeconds: 212,
+      inventory: ["multitool"],
+      discoveredFragments: { control_panel: "7X", vent: "Q2" },
+      ventUnlocked: true,
+      wrongAttempts: 0,
+    });
+
+    expect(run.clearIntervalCalls.length).toBeGreaterThanOrEqual(1);
+    expect(run.setIntervalCalls).toHaveLength(1); // no new interval started once escaped
+    expect(run.elements.status.textContent).toBe("escaped");
+    expect(run.elements.timer.textContent).toBe("03:32");
+  });
+
+  it("stops the clock when a tool-result reports status failed (timeout)", async () => {
+    const state = createInitialRoomState(T0);
+    const html = renderRoomMapHtml(toRoomStateView(state, T0));
+    const run = runFullRoomMapScripts(html);
+    await completeHandshake(run);
+
+    expect(run.setIntervalCalls).toHaveLength(1);
+
+    await sendToolResult(run, {
+      station: "Kessler Station",
+      room: "Maintenance Bay 7",
+      status: "failed",
+      remainingSeconds: 0,
+      inventory: [],
+      discoveredFragments: {},
+      ventUnlocked: false,
+      wrongAttempts: 2,
+    });
+
+    expect(run.clearIntervalCalls.length).toBeGreaterThanOrEqual(1);
+    expect(run.setIntervalCalls).toHaveLength(1);
+    expect(run.elements.status.textContent).toBe("failed");
+    expect(run.elements.timer.textContent).toBe("00:00");
+  });
+});
 
 describe("renderRoomMapHtml", () => {
   it("embeds the station/room name, status, and remaining seconds", () => {

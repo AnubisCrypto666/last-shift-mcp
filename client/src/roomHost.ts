@@ -87,13 +87,40 @@ export async function mountRoomView(client: Client, container: HTMLElement): Pro
 }
 
 /**
+ * Reads the `?refresh=` query parameter deciding whether `refreshRoomView`
+ * (option A, below) should run at all (OI-14 option B, stage 3). Default is
+ * "on" (unchanged behavior) - only the literal value "off" disables it;
+ * anything else, including an absent param, keeps the existing refresh.
+ *
+ * Why this matters: every `refreshRoomView` call replaces `iframe.srcdoc`,
+ * which makes the browser load a brand-new document into the iframe and
+ * re-run its embedded `<script>`s from scratch - including the view bundle,
+ * which calls `App.connect()` again and sends a second `ui/initialize` on
+ * the same host<->view pipe. `AppBridge._onAppsInitialize` (see
+ * node_modules/@modelcontextprotocol/ext-apps/dist/src/app-bridge.js)
+ * handles that gracefully (replaces the stored appInfo, logs
+ * "AppBridge received a second ui/initialize") rather than erroring, but it
+ * is still a second handshake the host never asked for. With `refresh=off`,
+ * this function never runs after the initial mount, so the iframe's
+ * document - and the view's `App` instance inside it - lives for the whole
+ * session, and `ui/initialize` fires exactly once.
+ */
+export function shouldRefreshSrcdoc(search: string): boolean {
+  return new URLSearchParams(search).get("refresh") !== "off";
+}
+
+/**
  * Re-reads the room-view resource and replaces the iframe's content.
  *
- * Stopgap (audit OI-14, option A): the resource already renders fresh
- * state on every read (server/src/room/uiRoomMap.ts), but the view has no
- * live channel to the host (see the known-limitation note above) - a full
- * `srcdoc` replace is the only way to reflect a state change today. Call
- * this after every tool call that might have changed room state.
+ * Audit OI-14, option A: the resource already renders fresh state on every
+ * read (server/src/room/uiRoomMap.ts). Originally the only update
+ * mechanism (the view had no live channel to the host); option B (stage 2:
+ * `sendToolCallToView` below, stage 3: the view's own DOM update) now
+ * covers the same state changes without a document reload, so this is kept
+ * as a second, independent path - callers gate it on `shouldRefreshSrcdoc`
+ * (OI-14 stage 3) rather than removing it, since a real MCP Apps host that
+ * remounts its own view per tool call needs this entry point to exist
+ * regardless of our client's own toggle.
  */
 export async function refreshRoomView(client: Client, host: RoomHost): Promise<void> {
   host.iframe.srcdoc = await readResourceHtml(client, host.resourceUri);

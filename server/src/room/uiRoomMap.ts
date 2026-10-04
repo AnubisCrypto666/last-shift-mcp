@@ -47,9 +47,17 @@ function escapeScriptClose(js: string): string {
  * content only - the sandboxed iframe + postMessage HOST side is the
  * client's responsibility (plan-pracy section 2, Component 2), not the
  * server's. The countdown ticks locally via embedded JS seeded from the
- * server's `remainingSeconds` at read time; real state changes (items,
- * fragments, vent) require a fresh resource read, which a host re-issues
- * around each related tool call.
+ * server's `remainingSeconds` at read time.
+ *
+ * Two independent update paths exist (OI-14, option A + option B, stage 3):
+ * option A is a full resource re-read + `iframe.srcdoc` replace a host may
+ * issue around a tool call (same effect as a fresh load of this function's
+ * output); option B is the live `ui/notifications/tool-result` channel the
+ * embedded view bundle (second `<script>` below) listens on and applies to
+ * this same DOM in place. Both must end up showing the same state, so the
+ * clock below exposes `window.__roomMapClock.resync(remaining, status)` -
+ * the one place that owns the countdown's `setInterval` - for the view
+ * bundle to call instead of running a second, competing interval.
  */
 export function renderRoomMapHtml(view: ReturnType<typeof toRoomStateView>): string {
   const itemsHtml = view.inventory.length
@@ -71,41 +79,61 @@ export function renderRoomMapHtml(view: ReturnType<typeof toRoomStateView>): str
   #timer { font-size: 2.5rem; font-variant-numeric: tabular-nums; color: #ff6b57; }
   .panel { border: 1px solid #4a1f1f; border-radius: 8px; padding: 12px; margin-top: 12px; background: #210606; }
   ul { margin: 4px 0 0; padding-left: 1.2em; }
-  .vent { color: ${view.ventUnlocked ? "#7cfc9a" : "#f5e6c8"}; }
+  .vent.locked { color: #f5e6c8; }
+  .vent.unlocked { color: #7cfc9a; }
   .status { text-transform: uppercase; letter-spacing: .05em; font-size: .8rem; opacity: .8; }
 </style>
 </head>
 <body>
   <h1>${escapeHtml(view.station)} &mdash; ${escapeHtml(view.room)}</h1>
-  <div class="status">${escapeHtml(view.status)}</div>
+  <div class="status" id="status">${escapeHtml(view.status)}</div>
   <div id="timer">--:--</div>
   <div class="panel">
     <strong>Inventory</strong>
-    <ul>${itemsHtml}</ul>
+    <ul id="inventory-list">${itemsHtml}</ul>
   </div>
   <div class="panel">
     <strong>Fragments found</strong>
-    <ul>${fragmentsHtml}</ul>
+    <ul id="fragments-list">${fragmentsHtml}</ul>
   </div>
-  <div class="panel vent">Vent: ${view.ventUnlocked ? "open" : "sealed"}</div>
+  <div class="panel vent ${view.ventUnlocked ? "unlocked" : "locked"}" id="vent">Vent: ${view.ventUnlocked ? "open" : "sealed"}</div>
   <script>
     (function () {
       var remaining = ${JSON.stringify(view.remainingSeconds)};
       var status = ${JSON.stringify(view.status)};
       var el = document.getElementById("timer");
+      var interval = null;
       function render() {
         var m = Math.floor(Math.max(0, remaining) / 60);
         var s = Math.max(0, remaining) % 60;
         el.textContent = String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
       }
-      render();
-      if (status === "active") {
-        var interval = setInterval(function () {
-          remaining -= 1;
-          if (remaining <= 0) { remaining = 0; clearInterval(interval); }
-          render();
-        }, 1000);
+      function stop() {
+        if (interval !== null) { clearInterval(interval); interval = null; }
       }
+      function start() {
+        stop();
+        if (status === "active") {
+          interval = setInterval(function () {
+            remaining -= 1;
+            if (remaining <= 0) { remaining = 0; stop(); }
+            render();
+          }, 1000);
+        }
+      }
+      render();
+      start();
+      // OI-14 option B, stage 3: the view bundle (second script below)
+      // calls this after every tool-result notification instead of
+      // starting its own interval, so there is only ever one clock.
+      window.__roomMapClock = {
+        resync: function (newRemaining, newStatus) {
+          remaining = newRemaining;
+          status = newStatus;
+          render();
+          start();
+        },
+      };
     })();
   </script>
   <script>${escapeScriptClose(VIEW_BUNDLE_JS)}</script>

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { CallToolResult, JSONRPCMessage, Tool, Transport } from "@modelcontextprotocol/client";
 import { App } from "@modelcontextprotocol/ext-apps";
 import { AppBridge } from "@modelcontextprotocol/ext-apps/app-bridge";
-import { sendToolCallToView, type RoomHost } from "../src/roomHost.js";
+import { sendToolCallToView, shouldRefreshSrcdoc, type RoomHost } from "../src/roomHost.js";
 
 /**
  * Mock-transport test for OI-14 option B, stage 2: sendToolCallToView must
@@ -136,5 +136,20 @@ describe("sendToolCallToView (OI-14 option B, stage 2 mock-transport test)", () 
     expect(order).toEqual(["hostcontextchanged", "toolinput", "toolresult"]);
     expect(toolNameAtInput).toBe("examine_room");
     expect(toolNameAtResult).toBe("examine_room");
+  });
+});
+
+describe("shouldRefreshSrcdoc (OI-14 option B, stage 3)", () => {
+  it("defaults to enabled - no param, or any value other than the literal 'off'", () => {
+    expect(shouldRefreshSrcdoc("")).toBe(true);
+    expect(shouldRefreshSrcdoc("?")).toBe(true);
+    expect(shouldRefreshSrcdoc("?foo=bar")).toBe(true);
+    expect(shouldRefreshSrcdoc("?refresh=on")).toBe(true);
+    expect(shouldRefreshSrcdoc("?refresh=OFF")).toBe(true); // case-sensitive: only the exact lowercase literal disables it
+  });
+
+  it("disables only on the exact literal '?refresh=off'", () => {
+    expect(shouldRefreshSrcdoc("?refresh=off")).toBe(false);
+    expect(shouldRefreshSrcdoc("?foo=bar&refresh=off")).toBe(false);
   });
 });

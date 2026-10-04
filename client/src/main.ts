@@ -1,7 +1,7 @@
 import type { Client } from "@modelcontextprotocol/client";
 import { COMMAND_HINT, parseCommand } from "./commandParser.js";
 import { getClient } from "./mcpClient.js";
-import { mountRoomView, refreshRoomView, sendToolCallToView, type RoomHost } from "./roomHost.js";
+import { mountRoomView, refreshRoomView, sendToolCallToView, shouldRefreshSrcdoc, type RoomHost } from "./roomHost.js";
 import { narrateRoomState } from "./roomState.js";
 
 const chatLog = document.querySelector<HTMLDivElement>("#chat-log")!;
@@ -9,6 +9,9 @@ const chatForm = document.querySelector<HTMLFormElement>("#chat-form")!;
 const chatInput = document.querySelector<HTMLInputElement>("#chat-input")!;
 const connectionStatus = document.querySelector<HTMLSpanElement>("#connection-status")!;
 const roomFrameContainer = document.querySelector<HTMLDivElement>("#room-frame-container")!;
+
+/** OI-14 option B, stage 3: `?refresh=off` disables the option-A srcdoc reload below (see roomHost.ts's shouldRefreshSrcdoc doc comment). Read once at load - the URL doesn't change mid-session. */
+const srcdocRefreshEnabled = shouldRefreshSrcdoc(window.location.search);
 
 function appendLine(text: string): void {
   const line = document.createElement("p");
@@ -69,10 +72,12 @@ async function handleCommand(client: Client, text: string, host: RoomHost | unde
       } catch (error) {
         appendLine(`Failed to notify room view of tool call: ${error instanceof Error ? error.message : String(error)}`);
       }
-      try {
-        await refreshRoomView(client, host);
-      } catch (error) {
-        appendLine(`Failed to refresh room view: ${error instanceof Error ? error.message : String(error)}`);
+      if (srcdocRefreshEnabled) {
+        try {
+          await refreshRoomView(client, host);
+        } catch (error) {
+          appendLine(`Failed to refresh room view: ${error instanceof Error ? error.message : String(error)}`);
+        }
       }
     }
   } catch (error) {
