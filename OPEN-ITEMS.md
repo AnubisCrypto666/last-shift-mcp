@@ -404,6 +404,37 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
 
 ---
 
+## OI-11: Wykrywanie kolizji portów Vite przed nagraniem demo
+
+- **Status:** otwarte
+- **Zakres:** Vite (klient, `npm run dev`) domyślnie nasłuchuje na porcie
+  5173, ale gdy ten port jest zajęty (np. przez nieubity poprzedni proces
+  `vite` z wcześniejszej sesji), Vite **po cichu** wybiera następny wolny
+  port (5174, 5175, ...) i zgłasza to tylko w konsoli terminala, nigdy w
+  przeglądarce. Instrukcje playtestu/demo zapisywane w tej sesji (i w
+  OPEN-ITEMS.md) zakładają twardo `http://localhost:5173`. Jeśli
+  nagranie dema odbędzie się po takiej niezauważonej kolizji, operator
+  może otworzyć martwą kartę (stary proces, stary stan gry) albo dostać
+  "connection refused" na właściwym porcie — tracąc czas pod presją
+  limitu wideo, w najgorszym możliwym momencie do debugowania.
+- **Kryterium zamknięcia (propozycja, niewdrożona — decyzja i wdrożenie
+  do właściciela):** albo (a) checklist/komenda do uruchomienia przed
+  nagraniem, sprawdzająca, że port 5173 jest wolny (np. `lsof -i :5173`
+  lub odpowiednik), albo (b) jawne przypięcie portu w
+  `client/vite.config.ts` (`server: { port: 5173, strictPort: true }`),
+  żeby Vite **odmówił** startu głośnym błędem zamiast po cichu
+  przeskoczyć port — głośniejsze i bezpieczniejsze przed nagraniem niż
+  domyślne zachowanie, ale zmienia zachowanie `npm run dev` poza tylko
+  dokumentacją, stąd pozostawione do wyboru właściciela.
+- **Termin:** przed nagraniem wideo demo (Faza 3).
+- **Historia:**
+  - sesja 2026-10-06 — pozycja otwarta przy pisaniu instrukcji playtestu
+    dla OI-14 Etap 4, po zauważeniu, że nic w repo nie broni przed tą
+    kolizją. Kryterium zamknięcia zaproponowane (dwie opcje), nie
+    wdrożone — poza zakresem tamtej sesji.
+
+---
+
 ## OI-12: Auth (SHOULD transportu) i stan gry powiązany z tożsamością użytkownika — zakres udokumentowany
 
 - **Status:** zmierzone — wybrana ścieżka (b): odstępstwa nazwane wprost,
@@ -447,7 +478,11 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
 
 ## OI-14: Widok `ui://room-map` nie uczestniczy w protokole MCP Apps (opcja B)
 
-- **Status:** otwarte, do decyzji właściciela
+- **Status:** zmierzone — Opcja B (etapy 1-4) wdrożona i zweryfikowana
+  testami oraz dwoma niezależnymi playtestami właściciela (2026-10-02,
+  2026-10-05, realny Bedrock). **Nie "zamknięte"** — decyzja zamknięcia
+  tej pozycji należy do właściciela, zgodnie ze stałą zasadą tego
+  rejestru (nagłówek pliku), nie do Claude Code.
 - **Zakres:** diagnoza 2026-09-27 (ręczne przejście gry, problem (b)):
   widok `ui://room-map` renderowany przez `client/src/roomHost.ts` nigdy
   nie wysyła `ui/initialize`/`ui/notifications/initialized` (jego HTML,
@@ -648,3 +683,145 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
       instrukcja w odpowiedzi tej sesji. Etap 4 (zmiana domyślnego trybu
       na `refresh=off`) świadomie poza zakresem tej sesji. OI-14 zostaje
       otwarte.
+  - sesja 2026-10-05 (właściciel, Chrome, realny Bedrock) — **wynik
+    playtestu, zapisany bez interpretacji:**
+    - Tryb `?refresh=off`: jeden log "MCP Apps handshake complete" na
+      całą sesję, brak ostrzeżenia o drugim `ui/initialize`; przy każdej
+      komendzie `tool-input` przed `tool-result`; pola mapy aktualizowane
+      w miejscu (`7X`, `multitool`, `Q2`, Vent open na zielono, status
+      ESCAPED); po błędnym kodzie zegar na mapie zszedł zgodnie z czasem
+      w czacie; po ucieczce zegar stoi na `05:14` przy `remainingSeconds`
+      `314`; narracja bez artefaktów markdown.
+    - Tryb domyślny, jak był do tej sesji (z odświeżaniem `srcdoc`): stan
+      poprawny po każdej komendzie, ostrzeżenie o drugim `ui/initialize`
+      po każdej komendzie (oczekiwane); po ucieczce zegar stoi na `08:20`
+      przy `remainingSeconds` `500`.
+    - Anomalia w trybie domyślnym: przy "examine toolbox" logi widoku
+      pokazały `tool-input ? {...}` i `tool-result ? {...}` (znak
+      zapytania zamiast nazwy narzędzia); przy pozostałych komendach
+      nazwa była poprawna. Mechanizm ustalony i naprawiony w sesji
+      2026-10-06, niżej.
+    - Obserwacja o grze (osobna sprawa, nie o protokole MCP Apps — patrz
+      **OI-15**): `attempt_escape` z poprawnym kodem `7XQ2` przy
+      zamkniętej wentylacji (tylko fragment `7X` znaleziony) zwraca ten
+      sam komunikat i karę czasową co błędny kod.
+    - **Ten playtest spełnia "wymóg testowy (b)"** z planu Opcji B
+      (sesja 2026-09-29, wyżej: "oba [tryby widoku] muszą działać") —
+      tryb trwałego widoku i tryb remontujący widok przy każdym
+      wywołaniu narzędzia zostały oba potwierdzone działające, w jednej
+      sesji, z realnym Bedrockiem, nie tylko w testach z podstawionym
+      transportem.
+    - **Korekta dwóch nieaktualnych miejsc w sekcji Zakres wyżej** (bez
+      przepisywania tamtej historii — tylko odnotowanie aktualnego
+      stanu): (1) opis "wbudowany skrypt zegara... nigdy nie sprawdza
+      `status`" opisywał stan **przed** commitem `5404fe9` ("fix(ui):
+      stop room-map clock when game is over", również 2026-09-27, ale
+      wcześniejszym tego dnia niż ta diagnoza) — ten błąd jest od tamtej
+      pory naprawiony i pokryty testem
+      (`server/test/room/uiRoomMap.test.ts`, "does not start the ticking
+      countdown once the game is over"); playtest 2026-10-05 potwierdza
+      to też empirycznie w obu trybach (zegar stoi, nie tyka, po
+      ucieczce). (2) problem (b) tamże opisany ("widok nigdy nie wysyła
+      `ui/initialize`") jest w całości zaadresowany przez Opcję B
+      (etapy 1-4), zweryfikowaną właśnie tym playtestem.
+  - sesja 2026-10-06 — **Etap 4 (ostatni) Opcji B: domyślny tryb klienta
+    odwrócony + domknięcie dokumentacji.**
+    - `client/src/roomHost.ts` (`shouldRefreshSrcdoc`): domyślne
+      zachowanie odwrócone — bez parametru w URL klient **nie**
+      odświeża `srcdoc` po `tools/call` (widok żyje całą sesję,
+      aktualizacje wyłącznie przez `tool-input`/`tool-result`); Opcja A
+      zostaje dostępna tylko jawnie przez `?refresh=on`, jako
+      przełącznik diagnostyczny symulujący hosta, który montuje widok od
+      nowa przy każdym wywołaniu narzędzia; `?refresh=off` nadal działa
+      (dokładnie ten sam efekt jak brak parametru).
+    - **Anomalia "?" ustalona przez czytanie kodu, zweryfikowana
+      reprodukcją w teście przed naprawą (nie zgadywana):**
+      `AppBridge.setHostContext`
+      (`node_modules/@modelcontextprotocol/ext-apps/dist/src/app-bridge.js`)
+      porównuje nowy `hostContext` z zapamiętanym poprzednim przez
+      `JSON.stringify` i **nie wysyła**
+      `ui/notifications/host-context-changed`, gdy wynik jest
+      identyczny. `sendToolCallToView` (`roomHost.ts`) ustawiało
+      `toolInfo: { tool }` bez żadnego pola zmieniającego się między
+      wywołaniami tego samego narzędzia — więc gdy dwie komendy pod rząd
+      wywołują ten sam tool ("examine control panel", potem "examine
+      toolbox" — oba `examine_room`), druga notyfikacja była po cichu
+      pomijana przez bibliotekę. Napisano najpierw test reprodukujący to
+      dokładnie przeciwko prawdziwym klasom `AppBridge`/`App` (nie
+      makietom) i potwierdzono, że faktycznie failuje na starym kodzie
+      (`toolNamesSeen` = `["examine_room"]` zamiast dwóch wpisów) —
+      dopiero potem naprawiono. Naprawa: `toolInfo.id` (pole typu
+      `RequestId`, udokumentowane w `spec.types.d.ts` właśnie jako "JSON-RPC
+      id of the tools/call request") teraz niesie lokalny, rosnący
+      licznik, więc payload nigdy nie jest identyczny z poprzednim i
+      notyfikacja zawsze dociera. Test zostaje w
+      `client/test/roomHost.test.ts`, teraz zielony.
+    - README, akapit "Zgodność z protokołem" skorygowany: nie deklaruje
+      już "wszystkie MUST" dla rozszerzenia MCP Apps 2026-01-26 bez
+      zastrzeżeń — wymienia wprost co wdrożone (handshake
+      `ui/initialize`→`ui/notifications/initialized`, `tool-input` przed
+      `tool-result`, `tool-result` ze `structuredContent`) i co jest
+      nazwanym, uzasadnionym odstępstwem (`tool-cancelled`: gra nie ma
+      mechanizmu anulowania `tools/call`; `resource-teardown`: widok
+      nigdy nie jest zdejmowany w trakcie sesji; `tool-input-partial`:
+      MAY, pominięte, nie MUST).
+    - Nowe karty w tym pliku: **OI-11** (wykrywanie kolizji portów Vite
+      przed nagraniem demo — numer był wolny, plik przeskakiwał z OI-09
+      na OI-12) i **OI-15** (obserwacja o grze z playtestu 2026-10-05:
+      poprawny kod ucieczki przy niekompletnych fragmentach karany jak
+      błędny — numer 10 pozostaje wolny/niewyjaśniony z wcześniejszej
+      sesji, 15 to pierwszy wolny numer po obecnym maksimum, żeby nie
+      kolidować z tym, czym 10 mogło być pierwotnie). Obie otwarte, do
+      decyzji właściciela; żadna zmiana logiki gry nie została
+      wprowadzona w tej sesji (poza zakresem).
+    - Testy: pakiet client 5/5 (było 4/4 — dodany test anomalii "?", dwa
+      istniejące testy `shouldRefreshSrcdoc` zaktualizowane na odwrócony
+      domyślny tryb, nie dodane jako nowe). Pakiet server: 99/99,
+      niezmienione — ten etap nie dotykał `server/`. `tsc --noEmit` i
+      `npm run build` czyste w obu pakietach.
+    - OI-14 zostaje **zmierzone** (status nagłówka poprawiony wyżej), nie
+      "zamknięte" — zamknięcie tej pozycji to decyzja właściciela.
+
+---
+
+## OI-15: Poprawny kod ucieczki przy niekompletnych fragmentach karany jak błędny
+
+- **Status:** otwarte, do decyzji właściciela
+- **Zakres:** `attempt_escape`
+  (`server/src/room/attemptEscape.ts:29`) sprawdza
+  `if (expected && submitted === expected)`, gdzie `expected` to
+  `getEscapeCode(state)` (`server/src/room/state.ts`) — zwraca
+  `undefined`, dopóki OBA fragmenty (`control_panel` i `vent`) nie
+  zostały odkryte. Gdy `expected` jest `undefined`, cały warunek jest
+  fałszywy niezależnie od tego, co gracz wpisał — nawet jeśli to
+  dosłownie finalny kod `7XQ2` (gracz mógł go znać z wcześniejszej
+  sesji, podsłuchać, czy po prostu zgadnąć). Efekt: `applyAttemptEscape`
+  ląduje w gałęzi błędnego kodu (linie 34-37 tego samego pliku) —
+  `wrongAttempts` rośnie, zegar traci `WRONG_CODE_TIME_PENALTY_SECONDS`
+  (20s), a zwrócony komunikat to dosłownie ten sam "The panel rejects
+  the code with a sharp buzz..." jak dla faktycznie błędnego kodu. Gracz
+  nie ma żadnej informacji rozróżniającej "kod poprawny, ale przedwczesny
+  (wentylacja wciąż zamknięta)" od "kod po prostu błędny" — z jego
+  perspektywy to nieodróżnialne od zgadnięcia źle. Potwierdzone w
+  playteście właściciela 2026-10-05: próba kodu `7XQ2` przy zamkniętej
+  wentylacji (tylko fragment `7X` znaleziony) dała ten sam komunikat i
+  karę czasową co błędny kod.
+- **Pytanie do właściciela, bez założonej odpowiedzi:** to jest
+  zamierzony projekt gry (kod ma być bezużyteczny bez obu fragmentów;
+  karanie próby i tak uczy gracza grać uczciwie, zamiast zgadywać) czy
+  niezamierzona luka UX (gracz zasługuje na inny komunikat i/lub brak
+  kary, gdy kod jest poprawny, tylko przedwczesny)?
+- **Kryterium zamknięcia:** decyzja właściciela — zostawić jak jest (z
+  jawnym uzasadnieniem w README/materiale zgłoszeniowym, jeśli to
+  zamierzone) albo zmienić zachowanie (np. osobny komunikat/brak kary
+  dla "poprawny kod, wentylacja wciąż zamknięta", albo inny wariant
+  wskazany przez właściciela).
+- **Termin:** brak sztywnego — nie blokuje żadnej bramki; dotyczy
+  jakości gry/UX, nie zgodności z protokołem MCP/MCP Apps.
+- **Historia:**
+  - sesja 2026-10-05 (właściciel, playtest) — zaobserwowane podczas
+    manualnego przejścia gry z realnym Bedrockiem.
+  - sesja 2026-10-06 — mechanizm potwierdzony przez czytanie kodu
+    (`attemptEscape.ts:29`, `state.ts`'s `getEscapeCode`), karta otwarta
+    z pytaniem do właściciela; zgodnie z zakresem tej sesji żadna zmiana
+    logiki gry nie została wprowadzona.
