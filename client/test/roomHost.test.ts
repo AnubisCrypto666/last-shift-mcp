@@ -139,17 +139,52 @@ describe("sendToolCallToView (OI-14 option B, stage 2 mock-transport test)", () 
   });
 });
 
-describe("shouldRefreshSrcdoc (OI-14 option B, stage 3)", () => {
-  it("defaults to enabled - no param, or any value other than the literal 'off'", () => {
-    expect(shouldRefreshSrcdoc("")).toBe(true);
-    expect(shouldRefreshSrcdoc("?")).toBe(true);
-    expect(shouldRefreshSrcdoc("?foo=bar")).toBe(true);
-    expect(shouldRefreshSrcdoc("?refresh=on")).toBe(true);
-    expect(shouldRefreshSrcdoc("?refresh=OFF")).toBe(true); // case-sensitive: only the exact lowercase literal disables it
+describe("sendToolCallToView resends host-context-changed for repeated tool calls (OI-14 stage 4, playtest anomaly 2026-10-05)", () => {
+  it("fires hostcontextchanged on both calls when the same tool is invoked twice in a row", async () => {
+    const [hostTransport, viewTransport] = createLinkedPair();
+
+    const bridge = new AppBridge(null, { name: "test-host", version: "0.0.1" }, { serverTools: {} });
+    await bridge.connect(hostTransport);
+
+    const app = new App({ name: "test-view", version: "0.0.1" }, {}, { autoResize: false });
+    const toolNamesSeen: Array<string | undefined> = [];
+    app.addEventListener("hostcontextchanged", (ctx) => {
+      toolNamesSeen.push(ctx.toolInfo?.tool?.name);
+    });
+
+    const initialized = new Promise((resolve) => {
+      bridge.oninitialized = resolve;
+    });
+    await app.connect(viewTransport);
+    await initialized;
+
+    const host: Pick<RoomHost, "bridge" | "tools" | "viewReady"> = { bridge, tools: [EXAMINE_ROOM_TOOL], viewReady: true };
+
+    // "examine control panel" then "examine toolbox" - different arguments,
+    // but the SAME tool (examine_room). Without a changing toolInfo.id,
+    // AppBridge.setHostContext (app-bridge.js) diffs the new toolInfo
+    // against its cached _hostContext by JSON.stringify equality and skips
+    // sending ui/notifications/host-context-changed when nothing differs -
+    // exactly what happened in the owner's 2026-10-05 playtest, where the
+    // second call's view logged "tool-input ? {...}" instead of the tool name.
+    await sendToolCallToView(host, { name: "examine_room", arguments: { target: "control_panel" } }, makeResult());
+    await sendToolCallToView(host, { name: "examine_room", arguments: { target: "toolbox" } }, makeResult());
+
+    expect(toolNamesSeen).toEqual(["examine_room", "examine_room"]);
+  });
+});
+
+describe("shouldRefreshSrcdoc (OI-14 option B, stage 4 - default flipped to off)", () => {
+  it("defaults to disabled - no param, or any value other than the literal 'on'", () => {
+    expect(shouldRefreshSrcdoc("")).toBe(false);
+    expect(shouldRefreshSrcdoc("?")).toBe(false);
+    expect(shouldRefreshSrcdoc("?foo=bar")).toBe(false);
+    expect(shouldRefreshSrcdoc("?refresh=off")).toBe(false); // still works - now the same as no param at all
+    expect(shouldRefreshSrcdoc("?refresh=ON")).toBe(false); // case-sensitive: only the exact lowercase literal enables it
   });
 
-  it("disables only on the exact literal '?refresh=off'", () => {
-    expect(shouldRefreshSrcdoc("?refresh=off")).toBe(false);
-    expect(shouldRefreshSrcdoc("?foo=bar&refresh=off")).toBe(false);
+  it("enables only on the exact literal '?refresh=on'", () => {
+    expect(shouldRefreshSrcdoc("?refresh=on")).toBe(true);
+    expect(shouldRefreshSrcdoc("?foo=bar&refresh=on")).toBe(true);
   });
 });

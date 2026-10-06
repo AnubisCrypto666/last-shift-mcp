@@ -10,7 +10,7 @@ const chatInput = document.querySelector<HTMLInputElement>("#chat-input")!;
 const connectionStatus = document.querySelector<HTMLSpanElement>("#connection-status")!;
 const roomFrameContainer = document.querySelector<HTMLDivElement>("#room-frame-container")!;
 
-/** OI-14 option B, stage 3: `?refresh=off` disables the option-A srcdoc reload below (see roomHost.ts's shouldRefreshSrcdoc doc comment). Read once at load - the URL doesn't change mid-session. */
+/** OI-14 option B, stage 4: the option-A srcdoc reload below is disabled by default now - only `?refresh=on` re-enables it as a diagnostic switch (see roomHost.ts's shouldRefreshSrcdoc doc comment). Read once at load - the URL doesn't change mid-session. */
 const srcdocRefreshEnabled = shouldRefreshSrcdoc(window.location.search);
 
 function appendLine(text: string): void {

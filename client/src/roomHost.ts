@@ -1,4 +1,4 @@
-import type { CallToolResult, Client, Tool } from "@modelcontextprotocol/client";
+import type { CallToolResult, Client, RequestId, Tool } from "@modelcontextprotocol/client";
 import { AppBridge, PostMessageTransport, buildAllowAttribute, getToolUiResourceUri } from "@modelcontextprotocol/ext-apps/app-bridge";
 
 export interface RoomHost {
@@ -88,25 +88,33 @@ export async function mountRoomView(client: Client, container: HTMLElement): Pro
 
 /**
  * Reads the `?refresh=` query parameter deciding whether `refreshRoomView`
- * (option A, below) should run at all (OI-14 option B, stage 3). Default is
- * "on" (unchanged behavior) - only the literal value "off" disables it;
- * anything else, including an absent param, keeps the existing refresh.
+ * (option A, below) should run at all. OI-14 stage 4 flips the default to
+ * disabled: only the exact literal "on" enables it now; anything else,
+ * including an absent param or the literal "off", keeps it disabled. (Up
+ * through stage 3 this was inverted - default "on", only "off" disabled it;
+ * see this function's git history for that version and its own rationale.)
  *
- * Why this matters: every `refreshRoomView` call replaces `iframe.srcdoc`,
- * which makes the browser load a brand-new document into the iframe and
- * re-run its embedded `<script>`s from scratch - including the view bundle,
- * which calls `App.connect()` again and sends a second `ui/initialize` on
- * the same host<->view pipe. `AppBridge._onAppsInitialize` (see
- * node_modules/@modelcontextprotocol/ext-apps/dist/src/app-bridge.js)
+ * Why the flip is safe: every `refreshRoomView` call replaces
+ * `iframe.srcdoc`, which makes the browser load a brand-new document into
+ * the iframe and re-run its embedded `<script>`s from scratch - including
+ * the view bundle, which calls `App.connect()` again and sends a second
+ * `ui/initialize` on the same host<->view pipe. `AppBridge._onAppsInitialize`
+ * (see node_modules/@modelcontextprotocol/ext-apps/dist/src/app-bridge.js)
  * handles that gracefully (replaces the stored appInfo, logs
- * "AppBridge received a second ui/initialize") rather than erroring, but it
- * is still a second handshake the host never asked for. With `refresh=off`,
- * this function never runs after the initial mount, so the iframe's
- * document - and the view's `App` instance inside it - lives for the whole
- * session, and `ui/initialize` fires exactly once.
+ * "AppBridge received a second ui/initialize") rather than erroring, but
+ * it's still a handshake the host never asked for, and real MCP Apps hosts
+ * (Alexa+ included) never do this - stage 2/3's own `sendToolCallToView`
+ * channel is what they rely on instead. The owner's playtest (2026-10-05,
+ * real Bedrock, Chrome) confirmed the no-refresh path end to end: one
+ * handshake per session, correct tool-input/tool-result ordering, all five
+ * map fields updating in place, and the clock stopping correctly on
+ * escape - see OPEN-ITEMS.md OI-14 history for the exact log lines. `?refresh=on`
+ * is kept as an explicit, opt-in diagnostic switch that simulates a host
+ * which remounts its view on every tool call (also a spec-legal pattern -
+ * see OI-14's "Uwaga o trybie widoku").
  */
 export function shouldRefreshSrcdoc(search: string): boolean {
-  return new URLSearchParams(search).get("refresh") !== "off";
+  return new URLSearchParams(search).get("refresh") === "on";
 }
 
 /**
@@ -116,11 +124,11 @@ export function shouldRefreshSrcdoc(search: string): boolean {
  * read (server/src/room/uiRoomMap.ts). Originally the only update
  * mechanism (the view had no live channel to the host); option B (stage 2:
  * `sendToolCallToView` below, stage 3: the view's own DOM update) now
- * covers the same state changes without a document reload, so this is kept
- * as a second, independent path - callers gate it on `shouldRefreshSrcdoc`
- * (OI-14 stage 3) rather than removing it, since a real MCP Apps host that
- * remounts its own view per tool call needs this entry point to exist
- * regardless of our client's own toggle.
+ * covers the same state changes without a document reload, and stage 4
+ * made that the default. This function stays as an explicit,
+ * `?refresh=on`-gated diagnostic path (`shouldRefreshSrcdoc`) rather than
+ * being removed, so a view-remounting host pattern stays exercisable
+ * on demand.
  */
 export async function refreshRoomView(client: Client, host: RoomHost): Promise<void> {
   host.iframe.srcdoc = await readResourceHtml(client, host.resourceUri);
@@ -145,6 +153,29 @@ export async function refreshRoomView(client: Client, host: RoomHost): Promise<v
  * updates here immediately before `sendToolInput` - in-band protocol state,
  * not a side channel smuggled into the wrong notification's params.
  */
+/**
+ * Local, monotonically increasing stand-in for the "JSON-RPC id of the
+ * tools/call request" `McpUiHostContext.toolInfo.id` is documented to carry
+ * (spec.types.d.ts). We don't thread the real MCP request id through from
+ * `client.callTool()` here, but any value that changes on every call is
+ * enough to fix the bug below, and `id`'s whole documented purpose is to
+ * distinguish one call from the next.
+ *
+ * Root cause (OI-14 stage 4, playtest anomaly 2026-10-05): `AppBridge.setHostContext`
+ * (node_modules/@modelcontextprotocol/ext-apps/dist/src/app-bridge.js) diffs
+ * the new context against its cached `_hostContext` by `JSON.stringify`
+ * equality and silently skips `sendHostContextChange` (hence no
+ * `ui/notifications/host-context-changed`) when nothing differs. Without
+ * this counter, two consecutive calls to the *same* tool (e.g. "examine
+ * control panel" then "examine toolbox" - both `examine_room`) produced an
+ * identical `{ toolInfo: { tool } }` payload, so the second call's
+ * notification was dropped - the view's `currentToolName` (roomMapView.ts)
+ * was never updated for that call and logged "?" instead of the tool name.
+ * Confirmed by reproducing it directly against the real `AppBridge` class
+ * in client/test/roomHost.test.ts before adding this fix.
+ */
+let toolCallSequence: RequestId = 0;
+
 export async function sendToolCallToView(
   host: Pick<RoomHost, "bridge" | "tools" | "viewReady">,
   call: { name: string; arguments?: Record<string, unknown> },
@@ -154,7 +185,8 @@ export async function sendToolCallToView(
 
   const tool = host.tools.find((candidate) => candidate.name === call.name);
   if (tool) {
-    host.bridge.setHostContext({ toolInfo: { tool } });
+    toolCallSequence = Number(toolCallSequence) + 1;
+    host.bridge.setHostContext({ toolInfo: { id: toolCallSequence, tool } });
   }
 
   await host.bridge.sendToolInput({ arguments: call.arguments ?? {} });
