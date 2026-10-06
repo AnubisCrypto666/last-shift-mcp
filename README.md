@@ -51,11 +51,38 @@ Pełna lista zmiennych: `.env.example` w korzeniu repo.
 
 ## Zgodność z protokołem
 
-**Zgodność z protokołem.** Serwer spełnia wszystkie wymogi MUST
-specyfikacji MCP 2025-11-25 (Streamable HTTP) i rozszerzenia MCP Apps
-2026-01-26, potwierdzone testami end-to-end i niezależnie przez MCP
-Inspector. Świadomie przyjęte odstępstwa od zaleceń SHOULD, poza
-zakresem hackathonu:
+**MCP 2025-11-25 (Streamable HTTP).** Serwer spełnia wszystkie wymogi
+MUST tej specyfikacji, potwierdzone testami end-to-end i niezależnie
+przez MCP Inspector.
+
+**Rozszerzenie MCP Apps 2026-01-26 (host↔widok, `ui://room-map`).**
+Wdrożone i zweryfikowane end-to-end (testy + playtest właściciela
+2026-10-05, realny Bedrock, Chrome — OPEN-ITEMS.md OI-14): pełny
+handshake `ui/initialize` → `ui/notifications/initialized` (widok nie
+otrzymuje żadnej notyfikacji przed jego zakończeniem, zgodnie z MUST NOT
+sekcji "Sandbox proxy"); `ui/notifications/tool-input` wysyłane przed
+`ui/notifications/tool-result` przy każdym wywołaniu narzędzia (obie
+notyfikacje MUST); `tool-result` niesie realny `structuredContent`
+zgodny z deklarowanym `outputSchema` narzędzia. Domyślnie klient trzyma
+jeden widok przez całą sesję, aktualizowany wyłącznie tym kanałem
+(`?refresh=on` włącza dodatkowo diagnostyczny tryb symulujący hosta, który
+montuje widok od nowa przy każdym wywołaniu — oba tryby przetestowane).
+
+Nie deklarujemy pełnej zgodności z MUST tego rozszerzenia — jeden MUST
+pozostaje niewdrożony, nazwany wprost poniżej, nie zamaskowany jako N/A:
+- **`ui/notifications/tool-cancelled` (MUST, warunkowo) — niewdrożone.**
+  Gra nie ma mechanizmu przerywania `tools/call` w trakcie wykonania
+  (klient nie wystawia żadnej akcji "cancel") — warunek tej notyfikacji
+  nigdy nie zachodzi w tym kliencie, bo sam mechanizm anulowania nie
+  istnieje.
+- **`ui/resource-teardown` (MUST, warunkowo) — nie dotyczy.** Widok żyje
+  przez całą sesję gry i nie jest zdejmowany przed jej końcem, więc
+  warunek tej notyfikacji nigdy nie zachodzi.
+- **`ui/notifications/tool-input-partial` (MAY) — pominięte.** Gra nie
+  strumieniuje argumentów narzędzi; to zalecenie MAY, nie MUST.
+
+Osobno, świadomie przyjęte odstępstwa od zaleceń **SHOULD** (nie MUST —
+nie wpływają na deklaracje wyżej), poza zakresem hackathonu:
 - **Uwierzytelnianie** — serwer nie implementuje OAuth 2.1 wymaganego
   przez transport (SHOULD) ani przez program partnerski Alexa+ do
   produkcyjnej integracji; ta sama luka jest jednocześnie protokołowa
@@ -65,9 +92,8 @@ zakresem hackathonu:
 - **Brak zdarzenia primingowego SSE** (resumability po zerwaniu
   połączenia) — adresuje niestabilne sieci, nieistotne dla demo.
 
-Żadne z powyższych nie blokuje deklarowanej zgodności ze specyfikacją —
-wszystkie dotyczą zaleceń SHOULD, nie wymogów MUST — i wszystkie są
-udokumentowane z uzasadnieniem w OPEN-ITEMS.md.
+Wszystkie powyższe są udokumentowane z uzasadnieniem w OPEN-ITEMS.md
+(OI-12, OI-13, OI-14).
 
 ## Status projektu
 
