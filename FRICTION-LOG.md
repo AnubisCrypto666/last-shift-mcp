@@ -243,3 +243,77 @@ Each entry:
   client to function at all. The exposed-headers detail in particular is
   easy to miss even for a consumer who does think to add their own CORS
   middleware.
+
+## 2026-10-06 — `@modelcontextprotocol/ext-apps`: `AppBridge.setHostContext`'s documented value-based dedup silently swallows `toolInfo` updates on repeated tool calls
+
+- **Action attempted:** Notify the room-map view of which tool was just
+  called, before each `ui/notifications/tool-input`/`tool-result` pair, by
+  calling `bridge.setHostContext({ toolInfo: { tool } })` once per
+  `tools/call` - the pattern `app-bridge.d.ts`'s own JSDoc examples show for
+  other `McpUiHostContext` fields (`setHostContext({ theme: "dark" })`,
+  etc.).
+- **Steps:** Called two different player commands back to back that both
+  invoke the *same* MCP tool with different arguments ("examine control
+  panel" then "examine toolbox" - both `examine_room`), with
+  `setHostContext({ toolInfo: { tool } })` called before each. Observed the
+  view's console log for the second call.
+- **Expected result:** The view's `ui/notifications/host-context-changed`
+  handler fires on both calls, so code in the view that reads
+  `ctx.toolInfo.tool.name` (to label the upcoming `tool-input`/`tool-result`
+  pair) has a correct, current value for both.
+- **Actual result:** The second call's `host-context-changed` notification
+  was never sent. The view's `toolInfo`-derived state stayed at whatever it
+  was set to by the *first* call - in our case (a view instance reset by an
+  `iframe.srcdoc` reload between the two calls) that meant `undefined`,
+  logged as `tool-input ? {...}` instead of the tool's name. First caught
+  in a live playtest (owner, 2026-10-05), then reproduced deterministically
+  in a unit test against the real `AppBridge`/`App` classes (no mocks) -
+  confirmed it fails on the unpatched code before writing any fix.
+- **Severity:** minor (no crash, no data loss beyond a UI attribution
+  label; our own fix was a few lines) but a genuine silent-failure trap:
+  nothing logs, warns, or throws when the notification is skipped - a host
+  author has to already suspect object-identity dedup to find this by
+  reading source, not by reading any doc or runtime message.
+- **Workaround:** `client/src/roomHost.ts`'s `sendToolCallToView` now sets
+  `toolInfo.id` (the `RequestId` field `spec.types.d.ts` documents as "JSON-RPC
+  id of the tools/call request") to a locally incrementing counter on every
+  call, so the `toolInfo` object is never identical to the previous one and
+  the dedup never triggers for it. Test added:
+  `client/test/roomHost.test.ts`, "sends host-context-changed again even
+  when the same tool is called twice in a row".
+- **Mechanism (confirmed):** `AppBridge.setHostContext`'s own JSDoc
+  (`app-bridge.d.ts`, directly above the method) states plainly: "Compares
+  fields present in the new context with the current context and sends a
+  `ui/notifications/host-context-changed` notification containing only
+  fields that have been added or modified. If no fields have changed, no
+  notification is sent." The compiled implementation
+  (`app-bridge.js`, `setHostContext`) does this via a plain
+  `JSON.stringify` equality check (`SF` in the minified bundle) per
+  top-level key of the passed object - so `toolInfo` is compared as a
+  whole structural blob against the previously cached one, not field by
+  field inside it. This dedup is real, intentional, and correctly
+  documented *for `setHostContext` in general* - it exists to avoid
+  redundant notifications for fields like `theme`/`locale`/`displayMode`
+  that genuinely don't change most of the time, and every one of
+  `app-bridge.d.ts`'s own worked examples for `setHostContext` happens to
+  use exactly those low-churn fields, never `toolInfo`. Nothing in
+  `toolInfo.id`'s own one-line doc ("JSON-RPC id of the tools/call
+  request") or anywhere else cross-references `setHostContext`'s dedup
+  behavior to explain that `id` is what's needed to make consecutive calls
+  to the *same* tool register as distinct updates. A host author who reads
+  `setHostContext`'s JSDoc, `toolInfo`'s field docs, and the worked
+  examples - in that order, the natural reading order - has no single
+  place telling them these two pieces fit together, or that skipping `id`
+  means repeat-tool notifications go silently missing.
+- **Proposed fix (our suggestion, not confirmed):** one line added to
+  `toolInfo.id`'s JSDoc cross-referencing `setHostContext`'s dedup
+  behavior (e.g. "Set this to a value that changes on every call -
+  `setHostContext` skips sending the notification entirely when the new
+  `toolInfo` is deep-equal to the previous one, which two calls to the same
+  tool otherwise would be"), plus one worked example under
+  `setHostContext` specifically showing `toolInfo` with a changing `id`.
+  We are not proposing a behavior change to the dedup itself - it's
+  reasonable and likely load-bearing for the low-churn fields it was
+  designed for - only that its interaction with `toolInfo` specifically
+  needs a sentence connecting the two docs that currently sit far apart
+  and never reference each other.

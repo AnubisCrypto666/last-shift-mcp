@@ -283,10 +283,35 @@ użylibyśmy ponownie) dla każdej pozycji. Lista oczekiwanych pozycji:
    ścieżki Alexa+, uczciwie odnotowana.
 7. Proces wniosku o kredyty AWS ($150, formularz Google) — osobna notatka
    pod pytanie "jak wyglądał onboarding od zera do hello world".
+8. Dokumentacja Alexa+ (MCP toolkit, client lifecycle, MCP Design Guide)
+   jako **osobne, samodzielne narzędzie** w Product Feedback — nie
+   podpunkt pozycji 2 (`ext-apps`). Uzasadnienie: to odrębny produkt
+   (strona dokumentacyjna Amazona, nie pakiet npm), z własnym tarciem
+   niezależnym od samego SDK — korekta narracji sampling/Bedrock (sesja
+   2026-09-17, druga sesja) wynikła właśnie z czytania tej dokumentacji,
+   nie kodu `ext-apps`.
 
 Nawet pozycje bez realnego tarcia dostają krótką, uczciwą odpowiedź
 ("zadziałało zgodnie z dokumentacją") — regulamin wymaga odpowiedzi dla
 **każdego** użytego narzędzia, nie tylko tych, które się zepsuły.
+
+**Nota z maila organizatora (2026-10-06), do zastosowania przy pisaniu
+Product Feedback i wideo w Fazie 3** — nieprzepisywanie regulaminu, tylko
+zapisanie konkretnych wymogów stamtąd, żeby nie szukać ich ponownie pod
+presją terminu:
+- Feedback per narzędzie ma odpowiadać na pięć pytań: do czego narzędzie
+  zostało użyte, co działało, co wymaga poprawy, jak wyglądał onboarding
+  od zera do "hello world", i czy użylibyśmy go ponownie oraz dlaczego.
+- Wideo ma limit **3 minuty** i formę pitchu, nie demo-przejścia: problem,
+  działające rozwiązanie, dla kogo jest, i jak rozwiązanie faktycznie
+  używa narzędzia wybranej ścieżki (Alexa+/MCP toolkit).
+- Narzędzie ścieżki musi być nazwane wprost w trzech miejscach: w opisie
+  zgłoszenia, w polu "Built With", i w samym wideo — żadne z tych trzech
+  nie zastępuje pozostałych.
+- Deadline zgłoszenia: **23.10.2026, 12:00 PT = 21:00 czasu polskiego** —
+  bez zmian względem terminu już zapisanego w sekcji 5, ale teraz
+  potwierdzony wprost z maila organizatora, nie tylko ze strony
+  hackatonu.
 
 ---
 

@@ -261,13 +261,13 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
 
 - **Status:** otwarte (zmierzone jako "mamy kandydatów", nie zamknięte jako
   "zgłoszone")
-- **Zakres:** Pięć wpisów w FRICTION-LOG.md/NOTES.md, każdy z rozdzielonym
+- **Zakres:** Sześć wpisów w FRICTION-LOG.md/NOTES.md, każdy z rozdzielonym
   mechanizmem (potwierdzonym) i propozycją poprawki (naszą, nie
   potwierdzoną): (1) deprecated Origin-validation w SDK v1 bez zamiennika,
   (2) przykład referencyjny SDK myli 400/404 dla nieznanej sesji, (3)
   nieudokumentowana opcja `allowedOrigins` w `@modelcontextprotocol/express`
   z zaskakującym domyślnym zachowaniem (czwarty wpis dotyczy tego samego
-  odkrycia z innej strony). **Piąty, nowy kandydat (2026-09-17, druga
+  odkrycia z innej strony). **Piąty kandydat (2026-09-17, druga
   sesja):** `@modelcontextprotocol/express`'s `createMcpExpressApp()`
   faktycznie używa pakietu `cors`, ale wyłącznie w wewnętrznym routerze
   metadanych OAuth (`.well-known/oauth-*`) — główne trasy `/mcp`, które
@@ -277,12 +277,32 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
   CORS. To trzeci, odrębny przypadek luki w tym samym pakiecie (po
   `allowedOrigins`'s dwóch wcześniejszych wpisach) — wzorzec, nie
   przypadek, wart odnotowania w samym zgłoszeniu. Pełny opis i naprawa:
-  `server/src/app.ts` (`corsForMcp`), NOTES.md 2026-09-17. Żaden z pięciu
-  nie został jeszcze zgłoszony jako Issue/PR.
+  `server/src/app.ts` (`corsForMcp`), NOTES.md 2026-09-17.
+  **Szósty, nowy kandydat (2026-10-06, OI-14 Etap 4) — pierwszy dotyczący
+  `ext-apps`, nie `express`/SDK:** `AppBridge.setHostContext`
+  (`@modelcontextprotocol/ext-apps`) deduplikuje przez porównanie
+  `JSON.stringify` całego pola `toolInfo` względem poprzedniego i po cichu
+  nie wysyła `ui/notifications/host-context-changed`, gdy wynik jest
+  identyczny — zachowanie to jest **udokumentowane** w JSDoc samej
+  `setHostContext` (ogólnie, dla pól typu `theme`/`locale`), ale nigdzie
+  nie jest powiązane z `toolInfo.id`, polem, którego spec dokumentuje
+  właśnie po to, żeby odróżniać kolejne wywołania tego samego narzędzia —
+  bez niego dwa kolejne wywołania tego samego tool'a tracą notyfikację po
+  cichu, bez żadnego ostrzeżenia w konsoli. Mechanizm potwierdzony
+  reprodukcją w teście przed naprawą (nie zgadywany). Pełny opis,
+  dokładny cytat JSDoc i nasza propozycja (jedna linia dokumentacji
+  łącząca dwa miejsca, nie zmiana zachowania): FRICTION-LOG.md,
+  2026-10-06. Reprodukcja: `client/test/roomHost.test.ts`, "sends
+  host-context-changed again even when the same tool is called twice in a
+  row". Naprawa w naszym kodzie: `client/src/roomHost.ts`
+  (`sendToolCallToView`, `toolInfo.id` jako rosnący licznik). Żaden z
+  sześciu nie został jeszcze zgłoszony jako Issue/PR.
 - **Kryterium zamknięcia:** zgodnie z planem sekcja 7 — wybrany wpis
   zgłoszony jako Issue z reprodukcją do jednego z priorytetowych repo
   (`ext-apps` → `inspector` → TypeScript SDK), i jeśli poprawka jest mała,
-  PR/branch na forku (nie musi być zmergowany).
+  PR/branch na forku (nie musi być zmergowany). Kandydat szósty
+  (`ext-apps`) trafia bezpośrednio w najwyżej priorytetowe repo z tej
+  listy.
 - **Termin:** Faza 2 (~2-5.10.2026), przed Bramką 3 (2026-10-09)
 - **Historia:**
   - sesja 2026-09-13/17 — cztery kandydaci zebrani podczas budowy rdzenia,
@@ -293,6 +313,10 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
     budowy Komponentu 2, z pełną reprodukcją i naprawą już wdrożoną w
     naszym kodzie; nadal świadomie nie zgłoszony, zgodnie z planem
     (Faza 2, nie teraz).
+  - sesja 2026-10-07 — szósty kandydat dopisany (`ext-apps`,
+    `setHostContext`/`toolInfo.id`, znaleziony i naprawiony 2026-10-06
+    podczas OI-14 Etap 4); nadal świadomie nie zgłoszony — Faza 2 jeszcze
+    nie rozpoczęta formalnie, termin bez zmian.
 
 ---
 
@@ -451,7 +475,12 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
 
 ## OI-13: SSE priming/resumability (audyt F5) — rozpoznane, niewdrożone
 
-- **Status:** otwarte, do decyzji właściciela
+- **Status:** **ZAMKNIĘTE przez właściciela, 2026-10-07** — świadomie
+  poza zakresem (droga B z kryterium zamknięcia niżej): SHOULD, nie MUST,
+  nieistotne dla scenariusza dema na hackathon. Uzasadnienie już w
+  README.md, akapit "Zgodność z protokołem", pod odstępstwami od SHOULD
+  ("Brak zdarzenia primingowego SSE... adresuje niestabilne sieci,
+  nieistotne dla demo").
 - **Zakres:** audyt wykazał brak zdarzenia primingowego SSE (SHOULD, nie
   MUST) — spec transportu, sekcja Resumability. Rozpoznanie w kodzie
   potwierdza: SDK w pełni wspiera priming/resumability przez opcjonalny
@@ -473,16 +502,19 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
   - sesja 2026-09-19 — audyt wykrył brak (F5); rozpoznanie SDK wykonane
     (patrz NOTES.md, wpis "F5 recon"), wdrożenie wstrzymane do decyzji
     właściciela.
+  - sesja 2026-10-07 — **decyzja właściciela: zamknięte, droga B.** Nic
+    nie wdrożone w kodzie (kryterium zamknięcia przewidywało tę drogę
+    jawnie — patrz wyżej); README.md dokumentuje odstępstwo z
+    uzasadnieniem od sesji 2026-09-19/22, bez zmian potrzebnych teraz.
 
 ---
 
 ## OI-14: Widok `ui://room-map` nie uczestniczy w protokole MCP Apps (opcja B)
 
-- **Status:** zmierzone — Opcja B (etapy 1-4) wdrożona i zweryfikowana
-  testami oraz dwoma niezależnymi playtestami właściciela (2026-10-02,
-  2026-10-05, realny Bedrock). **Nie "zamknięte"** — decyzja zamknięcia
-  tej pozycji należy do właściciela, zgodnie ze stałą zasadą tego
-  rejestru (nagłówek pliku), nie do Claude Code.
+- **Status:** **ZAMKNIĘTE przez właściciela, 2026-10-07.** Dowód: commity
+  `7d91861`, `d64e50e`, `ce63f26`, `89a04b2`, `63c8f56`; testy server
+  99/99, client 5/5; playtesty właściciela 2026-10-05 i 2026-10-07 w obu
+  trybach (`?refresh` domyślny i `on`).
 - **Zakres:** diagnoza 2026-09-27 (ręczne przejście gry, problem (b)):
   widok `ui://room-map` renderowany przez `client/src/roomHost.ts` nigdy
   nie wysyła `ui/initialize`/`ui/notifications/initialized` (jego HTML,
@@ -781,6 +813,32 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
       `npm run build` czyste w obu pakietach.
     - OI-14 zostaje **zmierzone** (status nagłówka poprawiony wyżej), nie
       "zamknięte" — zamknięcie tej pozycji to decyzja właściciela.
+  - sesja 2026-10-07 (właściciel, Chrome, realny Bedrock) — **wynik
+    playtestu Etapu 4, zapisany bez interpretacji:**
+    - Adres bez parametru (domyślny, trwały widok): jeden log handshake
+      na całą sesję, brak ostrzeżenia o drugim `ui/initialize`; nazwa
+      `examine_room` poprawna przy dwóch wywołaniach z rzędu (dokładnie
+      scenariusz anomalii "?" z 2026-10-05 — teraz poprawny); po ucieczce
+      zegar stoi na `08:11` przy `remainingSeconds` `491`.
+    - `?refresh=on`: stan mapy poprawny po każdej komendzie; ostrzeżenie o
+      drugim `ui/initialize` po każdej komendzie (oczekiwane, to jest
+      diagnostyczny tryb symulujący remontujący się host); po ucieczce
+      zegar stoi na `08:48` przy `remainingSeconds` `528`. **Nazwa
+      narzędzia przy "examine toolbox" w tym trybie nie została uchwycona
+      na zrzutach z tego playtestu** — poprawność tej akurat ścieżki
+      (ten sam tool wywołany drugi raz z rzędu, w trybie z przeładowaniem
+      `srcdoc`) jest potwierdzona **wyłącznie testem regresyjnym**
+      (`client/test/roomHost.test.ts`, "sends host-context-changed again
+      even when the same tool is called twice in a row"), nie bezpośrednią
+      obserwacją w tym konkretnym playteście. Zapisane wprost jako różnica
+      w sile dowodu, nie domyślnie zrównane z resztą tego wpisu.
+    - **Decyzja właściciela, 2026-10-07: OI-14 ZAMKNIĘTE.** Dowód: commity
+      `7d91861` (Etap 1), `d64e50e` (Etap 2), `ce63f26` (Etap 3), `89a04b2`
+      (Etap 4 — domyślny tryb odwrócony + naprawa anomalii "?"), `63c8f56`
+      (korekta README); testy server 99/99, client 5/5; dwa niezależne
+      playtesty właściciela (2026-10-05, 2026-10-07) pokrywające oba tryby
+      `?refresh`. Status nagłówka tej karty poprawiony na "ZAMKNIĘTE"
+      wyżej — bez przepisywania wcześniejszych wpisów historii.
 
 ---
 
