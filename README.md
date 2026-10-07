@@ -75,9 +75,11 @@ pozostaje niewdrożony, nazwany wprost poniżej, nie zamaskowany jako N/A:
   (klient nie wystawia żadnej akcji "cancel") — warunek tej notyfikacji
   nigdy nie zachodzi w tym kliencie, bo sam mechanizm anulowania nie
   istnieje.
-- **`ui/resource-teardown` (MUST, warunkowo) — nie dotyczy.** Widok żyje
-  przez całą sesję gry i nie jest zdejmowany przed jej końcem, więc
-  warunek tej notyfikacji nigdy nie zachodzi.
+- **`ui/resource-teardown` (MUST, warunkowo) — nie dotyczy.** Host nie
+  zdejmuje widoku programowo w trakcie sesji gry — jedyny sposób
+  zakończenia sesji jest zamknięcie karty przeglądarki, co kończy ją bez
+  wysłania tej notyfikacji (po zamknięciu strony nie ma już nic, co
+  mogłoby ją wysłać).
 - **`ui/notifications/tool-input-partial` (MAY) — pominięte.** Gra nie
   strumieniuje argumentów narzędzi; to zalecenie MAY, nie MUST.
 
