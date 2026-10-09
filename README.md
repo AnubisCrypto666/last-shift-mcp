@@ -15,7 +15,10 @@ JSON; `ui://room-map` — zasób MCP Apps renderujący mapę pomieszczenia z
 żywym licznikiem w sandboxed iframe po stronie klienta). Decydujące
 działanie, `attempt_escape`, jest blokowane przez MCP elicitation — serwer
 pyta o kod ucieczki jako strukturalny input, zanim rozstrzygnie
-sukces/porażkę; błędny kod kosztuje czas zamiast kończyć grę. Narracja
+sukces/porażkę; błędny kod kosztuje czas zamiast kończyć grę. Poprawny kod
+podany zanim gracz znajdzie oba fragmenty jest traktowany identycznie jak
+błędny — to świadoma decyzja o treści gry (OPEN-ITEMS.md, OI-15), nie
+błąd. Narracja
 `examine_room` w pierwszej kolejności próbuje MCP sampling (dla hostów,
 które deklarują tę capability), a w przeciwnym razie woła bezpośrednio
 Amazon Bedrock — co jest jedyną realną ścieżką narracji dla Alexy+, która
@@ -67,6 +70,11 @@ zgodny z deklarowanym `outputSchema` narzędzia. Domyślnie klient trzyma
 jeden widok przez całą sesję, aktualizowany wyłącznie tym kanałem
 (`?refresh=on` włącza dodatkowo diagnostyczny tryb symulujący hosta, który
 montuje widok od nowa przy każdym wywołaniu — oba tryby przetestowane).
+Nazwa aktualnie wywoływanego narzędzia dociera do widoku przez
+`McpUiHostContext.toolInfo` (`ui/notifications/host-context-changed`);
+pole `toolInfo.id` niesie lokalny, rosnący licznik, nie prawdziwy
+identyfikator żądania `tools/call` — publiczne API klienta MCP
+(`Client.callTool()`) nigdzie takiego identyfikatora nie udostępnia.
 
 Nie deklarujemy pełnej zgodności z MUST tego rozszerzenia — jeden MUST
 pozostaje niewdrożony, nazwany wprost poniżej, nie zamaskowany jako N/A:
