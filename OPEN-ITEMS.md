@@ -260,7 +260,9 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
 ## OI-06: Friction log → kontrybucja OSS, przegląd zaległy
 
 - **Status:** otwarte (zmierzone jako "mamy kandydatów", nie zamknięte jako
-  "zgłoszone")
+  "zgłoszone"); **odłożone do zakończenia dodatków Fazy 2** — decyzja
+  właściciela, Bramka 3, 2026-10-09 (plan-pracy-ostatnia-szychta.md,
+  sekcja 5, "Wynik")
 - **Zakres:** Sześć wpisów w FRICTION-LOG.md/NOTES.md, każdy z rozdzielonym
   mechanizmem (potwierdzonym) i propozycją poprawki (naszą, nie
   potwierdzoną): (1) deprecated Origin-validation w SDK v1 bez zamiennika,
@@ -324,9 +326,9 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
 
 - **Status:** otwarte
 - **Zakres:** Cztery decyzje jawnie odłożone w specyfikacji:
-  1. Dopracowanie fabuły/settingu (Kessler Station / Maintenance Bay 7 —
-     zaimplementowane jako robocza treść przy budowie rdzenia, nie
-     formalnie zatwierdzone jako finalne).
+  1. Dopracowanie fabuły/settingu — **zdecydowane 2026-10-09: Kessler
+     Station / Maintenance Bay 7 to finalne nazwy** (było: robocza treść
+     przy budowie rdzenia, niezatwierdzona formalnie).
   2. Model Bedrock do samplingu (placeholder w kodzie:
      `anthropic.claude-3-5-haiku-20241022-v1:0`, niezweryfikowany —
      zależne od OI-03).
@@ -357,6 +359,11 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
     zdecydowany (Vite + vanilla TypeScript) i wdrożony w Kroku 1
     Komponentu 2, z uzasadnieniem. Trzy pozostałe punkty (setting/treść,
     model Bedrock, hosting) wciąż otwarte.
+  - sesja 2026-10-09 — punkt 1 (setting) zdecydowany: Kessler
+    Station/Maintenance Bay 7 potwierdzone jako finalne nazwy, w ramach
+    przygotowań do nagrania wideo (termin: sobota 2026-10-10, patrz
+    plan-pracy-ostatnia-szychta.md sekcja 5). Pozostałe dwa punkty (model
+    Bedrock, hosting) wciąż otwarte.
 
 ---
 
@@ -430,7 +437,12 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
 
 ## OI-11: Wykrywanie kolizji portów Vite przed nagraniem demo
 
-- **Status:** otwarte
+- **Status:** zmierzone — decyzja właściciela 2026-10-09: opcja (b),
+  `strictPort`. Zaimplementowane i zweryfikowane w tej samej sesji
+  (patrz Historia); testy klienta 5/5, serwera 99/99 (bez zmian w
+  `server/`), bez regresji. **Niezacommitowane** — czeka na zgodę
+  właściciela na commit (patrz propozycja treści commita w raporcie
+  sesji 2026-10-09).
 - **Zakres:** Vite (klient, `npm run dev`) domyślnie nasłuchuje na porcie
   5173, ale gdy ten port jest zajęty (np. przez nieubity poprzedni proces
   `vite` z wcześniejszej sesji), Vite **po cichu** wybiera następny wolny
@@ -456,6 +468,31 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
     dla OI-14 Etap 4, po zauważeniu, że nic w repo nie broni przed tą
     kolizją. Kryterium zamknięcia zaproponowane (dwie opcje), nie
     wdrożone — poza zakresem tamtej sesji.
+  - sesja 2026-10-09 — **Decyzja właściciela: opcja (b), `strictPort`.**
+    Dodany nowy plik `client/vite.config.ts` (wcześniej nie istniał żaden
+    plik konfiguracyjny Vite w tym projekcie — zero-config na
+    domyślnych ustawieniach), `server: { port: 5173, strictPort: true }`.
+    Zweryfikowane empirycznie, dwa scenariusze: (1) port wolny — `npm run
+    dev` startuje identycznie jak przed zmianą, `curl` na
+    `http://localhost:5173/` zwraca `200`; (2) port zajęty przez
+    **drugą żywą instancję `vite`** (dokładna reprodukcja scenariusza z
+    Zakresu wyżej — zapomniany proces z wcześniejszej sesji, nie losowy
+    proces trzeci) — druga instancja kończy się natychmiast błędem
+    `Error: Port 5173 is already in use` i niezerowym kodem wyjścia,
+    zamiast cichego przeskoku na 5174. Uwaga metodologiczna: pierwsza
+    próba zasymulowania zajętego portu przez `python3 -m http.server
+    5173` **nie** wywołała błędu — ten serwer bindował się na adres
+    wildcard IPv6, inny niż konkretny adres `localhost`, na którym Vite
+    nasłuchuje domyślnie, więc `strictPort` go nie widział jako
+    konfliktu. To nie jest luka w naprawie — scenariusz z Zakresu to
+    zawsze proces tego samego stosu (`vite`/`node`) na tym samym adresie,
+    co i tak zademonstrowano w scenariuszu (2) — ale warto odnotować,
+    żeby nie uznać przypadkowo nieadekwatnego testu za dowód, że
+    `strictPort` nie działa. Testy: client 5/5, server 99/99 (bez zmian w
+    `server/`), zero regresji. Port 5173 posprzątany po testach
+    (`lsof -i :5173` czyste na koniec). **Niezacommitowane** — czeka na
+    zgodę właściciela (patrz propozycja treści commita, raport sesji
+    2026-10-09).
 
 ---
 
@@ -844,7 +881,11 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
 
 ## OI-15: Poprawny kod ucieczki przy niekompletnych fragmentach karany jak błędny
 
-- **Status:** otwarte, do decyzji właściciela
+- **Status:** **ZAMKNIĘTE przez właściciela, 2026-10-09** — zachowanie
+  zamierzone: poprawny kod przy niekompletnych fragmentach karany jak
+  błędny jest decyzją o treści gry, nie błędem UX. Bez zmian w kodzie
+  (`attemptEscape.ts` niezmieniony); README dostaje jedno zdanie
+  wyjaśniające (patrz Historia i diff README tej sesji).
 - **Zakres:** `attempt_escape`
   (`server/src/room/attemptEscape.ts:29`) sprawdza
   `if (expected && submitted === expected)`, gdzie `expected` to
@@ -883,3 +924,7 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
     (`attemptEscape.ts:29`, `state.ts`'s `getEscapeCode`), karta otwarta
     z pytaniem do właściciela; zgodnie z zakresem tej sesji żadna zmiana
     logiki gry nie została wprowadzona.
+  - sesja 2026-10-09 — **Decyzja właściciela: zachowanie zamierzone, OI-15
+    ZAMKNIĘTE.** Pierwsza z dwóch dróg kryterium zamknięcia wyżej —
+    zostaje jak jest, żadna zmiana logiki gry. README dostaje jedno
+    zdanie wyjaśniające to zachowanie, zgodnie z warunkiem właściciela.

@@ -253,6 +253,14 @@ Kryterium: czy zostało dość czasu na materiały zgłoszeniowe?
 Konsekwencja przy niepowodzeniu: rezygnujemy z kontrybucji OSS i dodatków z
 Fazy 2. Priorytet: działające demo, wideo, czyste repo.
 
+**Wynik (2026-10-09):** przeszła warunkowo. Priorytet to materiały
+zgłoszeniowe i wideo, OI-06 i dodatki Fazy 2 odłożone do czasu ich
+ukończenia.
+
+**Termin nagrania wideo:** sobota, 2026-10-10. **Tryb nagrania:
+`DEMO_MODE=recorded`** (oba — termin i tryb — decyzja właściciela,
+2026-10-09).
+
 **Uwaga do Fazy 0/1:** krok A3 z oryginalnego briefu (instalacja Amazon
 Devices Builder Tools) nie został jeszcze wykonany — zawisł, kiedy
 przeszliśmy prosto do researchu. Podejmujemy go na starcie Fazy 1 jako

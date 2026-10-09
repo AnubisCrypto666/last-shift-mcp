@@ -761,3 +761,114 @@ mieliśmy potwierdzoną już wcześniej bez kredytów), a kontrpróba potwierdza
 poprawnie po obu stronach — sukces i porażka rozróżnialne zarówno w
 odpowiedzi, jak i w logu serwera. Status OI-02 zmieniony na "zamknięte"
 (patrz OPEN-ITEMS.md).
+
+## 2026-10-09 — OI-05: pierwsza próba Amazon Devices Builder Tools, zatrzymana przed zapisem globalnej konfiguracji
+
+Materiał pod Product Feedback pozycja 6 (plan-pracy sekcja 6). Próba
+wykonana w katalogu tymczasowym poza repozytorium (`mktemp -d`), nie w
+`alexa-plus-hackathon/`. Przed startem: kopia zapasowa i sumy kontrolne
+(`shasum -a 256`) `~/.claude.json` i `~/.claude/settings.json` — jedyne
+dwa pliki w `~/.claude*` odpowiadające opisowi "ustawienia i MCP"
+(projekt nie ma własnego `.claude/` ani `.mcp.json`, nic tam do
+zabezpieczenia).
+
+**Node:** `v24.14.0` — poniżej znanego, problematycznego v26 z briefu
+(błąd bindingów SQLite3). Nie napotkano tego błędu.
+
+**Komenda:** `npx -y @amazon-devices/amazon-devices-buildertools-mcp@latest
+init-context --agent claude-code-cli`. **Wersja pakietu, która się
+faktycznie uruchomiła: `1.0.16`** (potwierdzone dwiema metodami:
+`npm view ... version` zwraca `1.0.16`; `package.json` w lokalnym cache
+`npx`, katalog zmodyfikowany w momencie uruchomienia, też mówi
+`"version": "1.0.16"`).
+
+**Co zadziałało:** instalacja przez `npx` bez błędów (same standardowe
+`npm warn deprecated` dla zależności pośrednich, nie błędy). Narzędzie
+poprawnie rozpoznało `--agent claude-code-cli` i automatycznie wybrało
+"2. Claude Code" z listy ośmiu wspieranych agentów/IDE, bez pytania o
+wybór.
+
+**Co nie zadziałało / wymaga uwagi:** mimo `--agent claude-code-cli`,
+narzędzie **nie jest w pełni nieinteraktywne** — zatrzymało się na
+pytaniu `y/n` przed zapisem: *"Update Claude Code MCP Config Path:
+/Users/jacek/.claude.json? (y/n):"*. To jest **globalny** plik
+konfiguracyjny Claude Code (rejestr serwerów MCP dla wszystkich
+projektów na tej maszynie, nie tylko tego repo) — zgodnie z warunkiem
+właściciela z tej sesji, zatrzymano próbę tu, bez odpowiedzi na to
+pytanie, i poproszono o decyzję, zanim cokolwiek zostanie zapisane.
+Sumy kontrolne obu plików (`.claude.json`, `settings.json`)
+**niezmienione** po tym punkcie — potwierdzone ponownym `shasum` od
+razu po przerwaniu. Proces zakończył się sam (EOF na stdin w
+nieinteraktywnej powłoce), nic nie zapisując.
+
+**Czas od zera do tego punktu:** ok. 5-10 minut (głównie pobieranie
+zależności przez `npm`/`npx` przy pierwszym uruchomieniu; sam start do
+pytania `y/n` to kilka-kilkanaście sekund). **`check-status` jeszcze
+nie wykonane** — zależne od decyzji właściciela, czy i jak odpowiedzieć
+na pytanie o zapis globalnej konfiguracji.
+
+**Trafność dla ścieżki Alexa+:** bez zmian względem wcześniejszego
+ustalenia w RESEARCH.md — to narzędzie Fire TV/Vega OS, nie Alexa+;
+próba służy uczciwej odpowiedzi w Product Feedback, nie oczekiwaniu na
+realną pomoc dla tego projektu.
+
+**Kontynuacja, ten sam dzień — decyzja właściciela: `n` na pytanie o
+zapis, próba dokończona bez instalacji niczego globalnie, dalszych prób
+nie podejmuję.**
+
+Ponowne uruchomienie tej samej komendy w tym samym katalogu
+tymczasowym, `echo "n" | npx ... init-context --agent claude-code-cli`.
+Narzędzie odpowiedziało: *"Skipped auto-configuring Amazon Devices
+Builder Tools MCP"* i wypisało gotową konfigurację JSON do ręcznego
+dodania samemu, zamiast zapisać ją automatycznie — zachowanie zgodne z
+oczekiwaniem przy odmowie. **Suma kontrolna `~/.claude.json` sprawdzona
+bezpośrednio po tym punkcie: identyczna jak przed oboma próbami**
+(`f5c5f7cd931a19665cb449e9e2461440cd3ba940434fc08be6716e1734c43dd8`) —
+plik faktycznie nietknięty.
+
+Po odmowie narzędzie zadało **drugie, osobne pytanie** ("Where do you
+want to save the context document?", domyślnie katalog roboczy) — nie
+odpowiedziano na nie (zgodnie z zakazem dalszych prób), proces zakończył
+się sam na EOF, nic nie zapisując w katalogu tymczasowym (sprawdzone:
+`ls` w tym katalogu pokazuje tylko własne logi tej próby, żadnego nowego
+pliku od narzędzia).
+
+`check-status` (ta sama wersja `1.0.16`, bez żadnego wcześniej
+zapisanego wpisu) **uruchamia się w pełni samodzielnie, kod wyjścia 0,
+bez żadnego pytania** — wypisuje tabelę ośmiu wspieranych
+agentów/IDE, wszystkie poprawnie jako "❌ Not configured", w tym Claude
+Code. Narzędzie nie wymaga więc istnienia wcześniejszego zapisu, żeby
+samo się odpytać o stan — rozłączne od `init-context`.
+
+**Materiał do Product Feedback, pozycja 6 (streszczenie do przeniesienia
+przy pisaniu Fazy 3):**
+- Co działało: instalacja przez `npx -y` bez błędów na Node 24.14.0;
+  `--agent claude-code-cli` poprawnie auto-wybiera "Claude Code" z menu
+  ośmiu opcji; `check-status` działa w pełni nieinteraktywnie i poprawnie
+  rozpoznaje brak konfiguracji.
+- Co wymaga poprawy: **domyślna ścieżka zapisu MCP configu to plik
+  globalny** (`~/.claude.json`, rejestr MCP dla wszystkich projektów na
+  maszynie, nie tylko tego repo) — narzędzie proponuje to jako pierwszy,
+  domyślny wybór, nie jako opcję obok zapisu projektowego; użytkownik
+  dbający o rozdzielenie projektów musi świadomie odmówić. Osobna,
+  niedociągnięta nitka: ekran wyboru opisuje opcję "Claude Code" jako
+  *"Uses CLAUDE.md file in project root"*, ale `check-status` dla tej
+  samej opcji pokazuje "Agent file" jako
+  `/Users/jacek/.claude/agents/adbt-dev.md` — plik globalny, nie
+  `CLAUDE.md` w korzeniu projektu. Nie doszliśmy do faktycznego zapisu
+  (druga próba przerwana na pytaniu o lokalizację dokumentu kontekstu,
+  zgodnie z zakazem dalszych prób), więc to jest obserwacja z opisu
+  narzędzia, nie ze zweryfikowanego zapisu na dysku — wart sprawdzenia
+  przy pisaniu finalnej odpowiedzi, nie twarde ustalenie.
+- Onboarding od zera do `check-status`: ok. 10-15 minut łącznie (obie
+  próby + ta), bez żadnego błędu blokującego, Node 24.14.0 bez problemu
+  z bindingami SQLite3 z briefu (choć pojawiło się osobne, nieszkodliwe
+  ostrzeżenie `ExperimentalWarning: SQLite is an experimental feature`
+  przy drugim uruchomieniu — inny mechanizm niż błąd bindingów natywnych
+  z Node 26 z brief'u, nie ten sam problem).
+- Czy użylibyśmy ponownie: nie dla tego projektu (Fire TV/Vega OS, nie
+  Alexa+, ustalone już w RESEARCH.md) — ale bez negatywnej oceny samego
+  narzędzia dla jego właściwego zastosowania.
+
+**Zamknięcie tej pozycji w tej sesji:** żadnych dalszych prób OI-05 nie
+podjęto, zgodnie z decyzją właściciela. Nic zainstalowane globalnie.
