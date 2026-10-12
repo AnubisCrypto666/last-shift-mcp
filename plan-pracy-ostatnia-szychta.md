@@ -261,6 +261,24 @@ ukończenia.
 `DEMO_MODE=recorded`** (oba — termin i tryb — decyzja właściciela,
 2026-10-09).
 
+**Ustalenia regulaminu, sprawdzone 2026-10-09**
+(`amazonappdev2026.devpost.com/rules`, sekcje "Submission Requirements" i
+"Language Requirements"): całe zgłoszenie (wideo, opis, dokumentacja
+kodu, instrukcje testowania, Product Feedback, friction log) ma być po
+angielsku — **decyzja właściciela: całe zgłoszenie i narracja wideo po
+angielsku**. Wideo: poniżej 3 minut, publiczne na YouTube lub Vimeo, bez
+cudzych znaków towarowych i muzyki, ma pokazywać MCP w działaniu. Repo:
+publiczne z widoczną licencją (sekcja About) albo prywatne udostępnione
+Amazonowi. Friction log: do 10% premii, wymagane pola zadanie/kroki/
+oczekiwane-vs-faktyczne/waga/obejście/sugestia — FRICTION-LOG.md już to
+spełnia (sprawdzone 2026-10-09, bez braków).
+
+**Nowe zadania z tych ustaleń:** tłumaczenie materiałów zgłoszeniowych na
+angielski (README, `examples/`, Product Feedback, opis zgłoszenia —
+NOTES.md zostaje wewnętrzną notatką roboczą, po polsku); konto YouTube
+lub Vimeo pod publikację wideo; wybór widoczności repo (publiczne z
+licencją już widoczną w About vs prywatne z dostępem dla Amazona).
+
 **Uwaga do Fazy 0/1:** krok A3 z oryginalnego briefu (instalacja Amazon
 Devices Builder Tools) nie został jeszcze wykonany — zawisł, kiedy
 przeszliśmy prosto do researchu. Podejmujemy go na starcie Fazy 1 jako
@@ -320,6 +338,11 @@ presją terminu:
   bez zmian względem terminu już zapisanego w sekcji 5, ale teraz
   potwierdzony wprost z maila organizatora, nie tylko ze strony
   hackatonu.
+
+**Ustalenie 2026-10-12:** nasz projekt nie używa partner-only MCP
+Toolkit Amazona — narzędziem ścieżki jest MCP, zgodnie z regulaminem
+(RESEARCH.md B4: *"MCP is the open standard that powers Alexa+
+integrations"*).
 
 ---
 

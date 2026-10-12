@@ -791,7 +791,7 @@ wybór.
 **Co nie zadziałało / wymaga uwagi:** mimo `--agent claude-code-cli`,
 narzędzie **nie jest w pełni nieinteraktywne** — zatrzymało się na
 pytaniu `y/n` przed zapisem: *"Update Claude Code MCP Config Path:
-/Users/jacek/.claude.json? (y/n):"*. To jest **globalny** plik
+~/.claude.json? (y/n):"*. To jest **globalny** plik
 konfiguracyjny Claude Code (rejestr serwerów MCP dla wszystkich
 projektów na tej maszynie, nie tylko tego repo) — zgodnie z warunkiem
 właściciela z tej sesji, zatrzymano próbę tu, bez odpowiedzi na to
@@ -854,7 +854,7 @@ przy pisaniu Fazy 3):**
   niedociągnięta nitka: ekran wyboru opisuje opcję "Claude Code" jako
   *"Uses CLAUDE.md file in project root"*, ale `check-status` dla tej
   samej opcji pokazuje "Agent file" jako
-  `/Users/jacek/.claude/agents/adbt-dev.md` — plik globalny, nie
+  `~/.claude/agents/adbt-dev.md` — plik globalny, nie
   `CLAUDE.md` w korzeniu projektu. Nie doszliśmy do faktycznego zapisu
   (druga próba przerwana na pytaniu o lokalizację dokumentu kontekstu,
   zgodnie z zakazem dalszych prób), więc to jest obserwacja z opisu
@@ -872,3 +872,15 @@ przy pisaniu Fazy 3):**
 
 **Zamknięcie tej pozycji w tej sesji:** żadnych dalszych prób OI-05 nie
 podjęto, zgodnie z decyzją właściciela. Nic zainstalowane globalnie.
+
+## 2026-10-12 — Bramka partnerska MCP Toolkit, strona Amazona
+
+Oficjalna strona `developer.amazon.com/docs/alexaplus/add-ons/home.html`
+mówi wprost, że Category SDK i MCP Toolkit są dostępne tylko dla
+wybranych partnerów Amazona — nie jest to nasz wniosek z pośrednich
+poszlak, to literalne stwierdzenie na tej stronie. Strona nosi znacznik
+"Last updated: Jul 10, 2026". Sprawdzone dzisiaj, 2026-10-12.
+
+Potwierdza to niezależnie od `RESEARCH.md` (ustalenie z 2026-09-13,
+patrz sekcja B5) — ten sam wniosek, nowsza data sprawdzenia, ten sam
+fragment strony. `RESEARCH.md` pozostaje nietknięty, to osobna notatka.

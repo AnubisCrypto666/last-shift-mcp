@@ -299,6 +299,9 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
   row". Naprawa w naszym kodzie: `client/src/roomHost.ts`
   (`sendToolCallToView`, `toolInfo.id` jako rosnący licznik). Żaden z
   sześciu nie został jeszcze zgłoszony jako Issue/PR.
+
+  **Uwaga 2026-10-12:** odrębnych wpisów w FRICTION-LOG.md jest pięć;
+  kandydat (4) to to samo odkrycie co (3), opisane z innej strony.
 - **Kryterium zamknięcia:** zgodnie z planem sekcja 7 — wybrany wpis
   zgłoszony jako Issue z reprodukcją do jednego z priorytetowych repo
   (`ext-apps` → `inspector` → TypeScript SDK), i jeśli poprawka jest mała,
