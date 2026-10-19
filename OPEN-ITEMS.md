@@ -27,6 +27,38 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
   (artefakty markdown w narracji; widok `ui://room-map` nie odświeża się
   po starcie sesji) nie unieważniają literalnego kryterium bramki — patrz
   OI-04, Historia 2026-09-26.
+- **2026-10-19 — stan przygotowań do wysyłki (migawka, nie zamknięcie
+  żadnej pozycji).** Cel: śr 21.10.2026; twardy termin: pt 23.10.2026,
+  12:00 PDT = 21:00 czasu polskiego.
+  - **Zrobione:** demo nagrane (v2, 2:43), wgrane na YouTube
+    (`https://youtu.be/Z8ErQlyZdyo`), celowo **prywatne** do ostatniej
+    chwili; napisy EN jako `.srt`, ręcznie poprawione (autosync
+    niedostępny); tytuł/opis YouTube wypełnione (link do repo, link do
+    Devpost, nota o przygotowanym wcześniej tekście, lista technologii,
+    wzmianka AWS Builder, zastrzeżenie "independent entry, not an
+    official Amazon product"); konto YouTube niezweryfikowane, więc
+    linki w opisie nieklikalne (opcjonalne do naprawy); repo publiczne,
+    MIT (`github.com/AnubisCrypto666/last-shift-mcp`); testy 104/104
+    (99 serwer + 5 klient).
+  - **Do zrobienia, w tej kolejności:** (A) zamiana `README.md` na
+    treść z `README-EN-draft.md` (bez nagłówka szkicu i sekcji
+    "Translation notes"), commit/push po akceptacji właściciela; (B)
+    GitHub About (opis, topics, website) — ręcznie, właściciel; (C)
+    commit poprawki favicon (`client/index.html`) + commit dokumentów
+    OPEN-ITEMS/plan, po akceptacji; (D) wklejenie do Devpost treści z
+    `SUBMISSION-DESCRIPTION-EN-draft.md` i `PRODUCT-FEEDBACK-EN-draft.md`
+    (pozostałe znaczniki `[OWNER]` w tym drugim pliku: 7×
+    tak/nie "build again", 2× czas "zero to hello world" — uzupełnia
+    właściciel) + Built With + pola AWS Builder; (E) ostatnia kontrola
+    spójności liczb (104/104; friction log = pięć wpisów, z adnotacją,
+    że ta karta (OI-06) wciąż mówi "sześć") i braku ścieżek
+    `/Users/jacek` w repo, oraz działającego linku do filmu w opisie
+    Devpost po ustawieniu filmu na Publiczny; (F) na końcu: film →
+    Publiczny, test w oknie incognito, wysłanie zgłoszenia.
+  - **Nieuzgodnione, nie dotykać teraz:** OI-09
+    (`PROMPT-START-alexa.md`), OI-06 (mini-wyzwanie Open Source —
+    odłożone, nie zgłaszamy), `PROTOKOL-SESJI.md` (szkic bez decyzji
+    właściciela).
 
 ---
 
@@ -931,3 +963,58 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
     ZAMKNIĘTE.** Pierwsza z dwóch dróg kryterium zamknięcia wyżej —
     zostaje jak jest, żadna zmiana logiki gry. README dostaje jedno
     zdanie wyjaśniające to zachowanie, zgodnie z warunkiem właściciela.
+
+---
+
+## OI-16: Friction log w publicznym repo po angielsku
+
+- **Status:** zmierzone — dowód niżej. Zamknięcie zostaje przy
+  właścicielu.
+- **Zakres:** Scenariusz wideo v5 (`VIDEO-SCRIPT-EN-v5-draft.md`)
+  obiecuje w materiale zgłoszeniowym: *"five confirmed findings, in
+  the official SDK, the express package, and ext-apps - each with a
+  cause and a proposed fix."* Ta pozycja sprawdza, czy to, co faktycznie
+  jest w publicznym repo, pokrywa to twierdzenie.
+- **Kryterium zamknięcia:** `FRICTION-LOG.md` (lub jego angielski
+  odpowiednik) jest w publicznym repo na `origin/main`, ma dokładnie
+  pięć wpisów zgodnych z filmem (SDK, express, ext-apps), każdy z
+  mechanizmem (potwierdzonym) i propozycją poprawki (naszą,
+  niepotwierdzoną).
+- **Termin:** przed wysyłką zgłoszenia (23.10.2026, 21:00 czasu
+  polskiego).
+- **Historia:**
+  - sesja 2026-10-19 — sprawdzone wprost: `git log origin/main -1 --
+    FRICTION-LOG.md` → commit `0646c85` (plik obecny i śledzony na
+    `origin/main`, nie tylko lokalnie). `grep -c "^## " FRICTION-LOG.md`
+    na wersji z `origin/main` → **5**. Sprawdzenie języka (znaki
+    diakrytyczne polskie) → **0**, plik w całości po angielsku.
+    Rozkład pakietów, zliczony z nagłówków: 2× `@modelcontextprotocol/sdk`
+    (15.09), 2× `@modelcontextprotocol/express` (16.09, 17.09), 1×
+    `@modelcontextprotocol/ext-apps` (06.10) — zgodne z tym, co mówi
+    scenariusz v5. Każdy z pięciu wpisów ma sekcje "Mechanism
+    (confirmed)" i "Proposed fix" (sprawdzone wcześniej w tej samej
+    sesji roboczej, 2026-10-12 — patrz commit `12d5ed8`). Kryterium
+    zamknięcia spełnione w całości — pozostaje do Twojej decyzji, czy
+    oznaczyć jako zamknięte.
+
+---
+
+## OI-17: README i GitHub About po angielsku
+
+- **Status:** otwarte.
+- **Zakres:** README na GitHubie (publiczna strona repo) ma być po
+  angielsku przed wysyłką, tak samo sekcja About (opis, topics,
+  website).
+- **Kryterium zamknięcia:** `README.md` = treść `README-EN-draft.md`
+  po usunięciu nagłówka szkicu ("Draft translation, no commit...") i
+  sekcji "Translation notes"; About wypełnione przez właściciela.
+- **Termin:** przed wysyłką zgłoszenia (23.10.2026, 21:00 czasu
+  polskiego).
+- **Historia:**
+  - sesja 2026-10-19 — sprawdzone wprost: `git log origin/main -1 --
+    README.md` → commit `46f8573` (09.10.2026), treść wciąż po polsku
+    (66 linii ze znakami diakrytycznymi). `gh repo view` → `description:
+    ""`, `homepageUrl: ""` — About puste. `README-EN-draft.md` istnieje
+    jako gotowy, nieskomitowany szkic od kilku sesji, czeka na
+    akceptację właściciela przed zamianą. Nic zamknięte — zamiana
+    README i wypełnienie About to osobne czynności, obie przed Tobą.
