@@ -235,9 +235,11 @@ far off the illustrative rate turns out to be from the real one.
   that mode, because it remounts the view on each tool call
   (OPEN-ITEMS.md, OI-14). The default mode (no `?refresh` parameter)
   doesn't produce this warning.
-- **No fullscreen/expand control, and no accessibility pass yet** on
-  the room panel (contrast, touch target sizing) — tracked as
-  OPEN-ITEMS.md OI-04, steps 5-6, not done.
+- **No working fullscreen/expand control yet, and no accessibility pass**
+  on the room panel (contrast, touch target sizing). The "Expand"
+  button in the panel header is a disabled placeholder with no
+  behavior behind it — tracked as OPEN-ITEMS.md OI-04, steps 5-6, not
+  done.
 - **Live Bedrock narration needs your own AWS setup.** Without your
   own AWS credentials and Bedrock model access configured locally (see
   `.env.example`), `examine_room` degrades gracefully to a fixed base
@@ -248,10 +250,12 @@ far off the illustrative rate turns out to be from the real one.
 ## Project status
 
 See `OPEN-ITEMS.md` for the current state of open items, and
-`raport-sesji/` for session history — both are internal working notes
-in Polish, not part of the submission materials, and every claim this
-README makes about the project stands on its own without needing
-them.
+`raport-sesji/` for session history. These, together with the other
+Polish-language notes in the repo root (`PLAYBOOK.md`, `PROMPTS.md`,
+`LESSONS-deadreckon.md`, `SESSION-REPORT-amazon-prep.md`,
+`plan-pracy-ostatnia-szychta.md`), are internal working notes, not
+part of the submission materials, and every claim this README makes
+about the project stands on its own without needing them.
 
 ## License
 

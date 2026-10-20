@@ -59,6 +59,12 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
     (`PROMPT-START-alexa.md`), OI-06 (mini-wyzwanie Open Source —
     odłożone, nie zgłaszamy), `PROTOKOL-SESJI.md` (szkic bez decyzji
     właściciela).
+- **2026-10-20 — stan przed wysyłką (migawka).** README EN (`a11d204`),
+  About, anonimizacja ścieżek i tożsamości git (`56714bb`), szkic
+  Devpost wypełniony w całości (niezgłoszony), kontrola E bez
+  rozbieżności. Pozostaje punkt F (właściciel): opcjonalnie
+  zrzuty/miniatura; film → Publiczny; test incognito (film, link do
+  Devpost w opisie YouTube, link w About); Submit.
 
 ---
 
@@ -537,11 +543,17 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
   nie zamaskowane jako N/A.
 - **Rozstrzygnięcie:** README/materiał zgłoszeniowy zawiera akapit
   "Zgodność z protokołem" łączący auth (SHOULD transportu) ze statusem
-  tożsamości użytkownika (MUST elicitation, odczyt: dopuszczalne przy
-  braku auth) jako jedną, spójnie nazwaną decyzję zakresu — nie dwa
-  niezależne przemilczenia.
+  tożsamości użytkownika (MUST elicitation — spec 2025-11-25, Client
+  Features → Elicitation, „Statefulness” i „Security Considerations”:
+  stan elicitation nie może być powiązany wyłącznie z ID sesji; przy
+  braku auth ten MUST jest NIESPEŁNIONY) jako jedną, spójnie nazwaną
+  decyzję zakresu — nie dwa niezależne przemilczenia.
 - **Historia:**
   - sesja 2026-09-19 — decyzja podjęta, akapit gotowy w README.
+  - sesja 2026-10-20 — poprzedni odczyt („dopuszczalne przy braku
+    auth”) był błędny; sprawdzony tekst specyfikacji. README nazywa tę
+    lukę wprost w sekcji Protocol compliance, a bullet o tożsamości
+    usunięto z listy odstępstw od SHOULD.
 
 ---
 
@@ -968,8 +980,7 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
 
 ## OI-16: Friction log w publicznym repo po angielsku
 
-- **Status:** zmierzone — dowód niżej. Zamknięcie zostaje przy
-  właścicielu.
+- **Status:** ZAMKNIĘTE przez właściciela, 2026-10-20.
 - **Zakres:** Scenariusz wideo v5 (`VIDEO-SCRIPT-EN-v5-draft.md`)
   obiecuje w materiale zgłoszeniowym: *"five confirmed findings, in
   the official SDK, the express package, and ext-apps - each with a
@@ -996,12 +1007,17 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
     sesji roboczej, 2026-10-12 — patrz commit `12d5ed8`). Kryterium
     zamknięcia spełnione w całości — pozostaje do Twojej decyzji, czy
     oznaczyć jako zamknięte.
+  - sesja 2026-10-20 — kontrola końcowa E: FRICTION-LOG.md na
+    origin/main ma 5 wpisów, każdy z polami
+    Task/Steps/Expected/Actual/Severity/Workaround/Suggestion, zero
+    polskich znaków; link wklejony w polu Friction Log szkicu Devpost.
+    Zamknięte przez właściciela.
 
 ---
 
 ## OI-17: README i GitHub About po angielsku
 
-- **Status:** otwarte.
+- **Status:** ZAMKNIĘTE przez właściciela, 2026-10-20.
 - **Zakres:** README na GitHubie (publiczna strona repo) ma być po
   angielsku przed wysyłką, tak samo sekcja About (opis, topics,
   website).
@@ -1018,3 +1034,9 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
     jako gotowy, nieskomitowany szkic od kilku sesji, czeka na
     akceptację właściciela przed zamianą. Nic zamknięte — zamiana
     README i wypełnienie About to osobne czynności, obie przed Tobą.
+  - sesja 2026-10-20 — README po angielsku (commit `a11d204`;
+    deklaracja MUST zastąpiona nazwaną luką elicitation wg spec
+    2025-11-25), GitHub About uzupełnione ręcznie przez właściciela
+    (opis, link do filmu, 8 tematów; potwierdzone zrzutem i
+    `gh repo view`), licencja MIT widoczna w About. Zamknięte przez
+    właściciela.
