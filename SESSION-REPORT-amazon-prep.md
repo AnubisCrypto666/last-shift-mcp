@@ -51,7 +51,7 @@
 **Gotowe do startu Claude Code.**
 
 Dwa warunki przed Promptem 0:
-1. ✅ Folder na dysku: `/Users/jacek/Documents/alexa-plus-hackathon` z trzema plikami metodyki
+1. ✅ Folder na dysku: `~/Documents/alexa-plus-hackathon` z trzema plikami metodyki
 2. ✅ Devpost: zarejestrowany, dołączony do hackatonu
 3. ✅ AWS: konto aktywne, formularz wysłany, kredyty w trakcie (przyznanie się opóźni start zaledwie o kilka godzin)
 4. ⏳ Amazon Developer: założyć PRZED Promptem A (research tam będzie)

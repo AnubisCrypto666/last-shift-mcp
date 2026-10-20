@@ -54,13 +54,15 @@ Z dowodem, nie z relacji:
 - **Testy 104/104** `[ZE ŹRÓDŁA]` — potwierdzone wcześniej w tej samej
   sesji roboczej (99 serwer + 5 klient), bez zmian w kodzie testowym od
   tamtej chwili.
-- **Dwa, nie więcej, wystąpienia `/Users/jacek` w śledzonych plikach**
-  `[ZE ŹRÓDŁA]` — `git grep "/Users/jacek"`: (1) `OPEN-ITEMS.md`,
+- **Dwa, nie więcej, wystąpienia `/Users/USER` w śledzonych plikach**
+  `[ZE ŹRÓDŁA]` — `git grep "/Users/USER"`: (1) `OPEN-ITEMS.md`,
   wpis z tej sesji, opisuje sam punkt kontrolny ("sprawdzić brak
-  ścieżek `/Users/jacek`"), nie ujawnia realnej ścieżki jako treści;
+  ścieżek `/Users/USER`"), nie ujawnia realnej ścieżki jako treści;
   (2) `SESSION-REPORT-amazon-prep.md:54`, znane od pierwszego commita
   repo (`627384c`, 13.09.2026), niezmienione w tej sesji. Żadne z nich
   nie zawiera sekretu — tylko nazwę konta lokalnego systemu.
+  *(Ścieżki domowe zanonimizowane 2026-10-20 na `/Users/USER`;
+  oryginalne komendy zawierały rzeczywistą nazwę konta lokalnego.)*
 - **Zero wzorców sekretów** `[ZE ŹRÓDŁA]` — `git grep` po wzorcach
   kluczy AWS, haseł, bloków PEM w śledzonych plikach: zero trafień.
 
@@ -165,7 +167,7 @@ $ git diff --stat
 
 - **`.env` nigdy w historii** `[ZE ŹRÓDŁA]` — `git log --all -- .env`,
   pusty wynik.
-- **`/Users/jacek`: dwa wystąpienia w śledzonych plikach, obie
+- **`/Users/USER`: dwa wystąpienia w śledzonych plikach, obie
   łagodne** `[ZE ŹRÓDŁA]` — opisane w sekcji 2, żadne nie jest
   sekretem.
 - **Zero wzorców kluczy/haseł/bloków PEM** `[ZE ŹRÓDŁA]` — `git grep`

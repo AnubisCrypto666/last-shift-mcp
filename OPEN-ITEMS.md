@@ -52,7 +52,7 @@ statusu na "zmierzone" z dowodem, i czeka na Twoje zamknięcie.
     właściciel) + Built With + pola AWS Builder; (E) ostatnia kontrola
     spójności liczb (104/104; friction log = pięć wpisów, z adnotacją,
     że ta karta (OI-06) wciąż mówi "sześć") i braku ścieżek
-    `/Users/jacek` w repo, oraz działającego linku do filmu w opisie
+    `/Users/USER` w repo, oraz działającego linku do filmu w opisie
     Devpost po ustawieniu filmu na Publiczny; (F) na końcu: film →
     Publiczny, test w oknie incognito, wysłanie zgłoszenia.
   - **Nieuzgodnione, nie dotykać teraz:** OI-09
